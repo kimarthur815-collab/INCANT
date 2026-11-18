@@ -101,7 +101,7 @@ function drawBook(b){
   for(let r=0;r<3;r++)for(let c=0;c<5;c++)ctx.drawImage(img,sx[c],sy[r],sx[c+1]-sx[c],sy[r+1]-sy[r],dx[c],dy[r],dx[c+1]-dx[c],dy[r+1]-dy[r]);
 }
 
-const DEF={hp:100,dmgBase:10,d0:4,d1:7,d2:10,d3:13,d4:16,repeatMul:50,typoPen:10,typoMax:50,critChance:25,critMult:2,refCPM:300,baseCross:3.2,crossMin:1.6,crossMax:5,shieldBase:30,s0:10,s1:15,s2:20,s3:25,s4:30,shieldMax:90,shieldDur:2,refExact:100,refSame:80,ref1:40,ref2:10,ref3:0,reflectDur:1.5,aiCPM:200,aiTypo:5,aiMaxPrefix:3,aiInterrupt:70,aiDefend:50};
+const DEF={hp:100,dmgBase:10,d0:4,d1:7,d2:10,d3:13,d4:16,repeatMul:50,typoPen:10,typoMax:50,critChance:25,critMult:2,refCPM:300,baseCross:3.2,crossMin:1.6,crossMax:5,shieldBase:30,s0:10,s1:15,s2:20,s3:25,s4:30,shieldMax:90,shieldDur:2,refExact:100,refSame:80,ref1:40,ref2:10,ref3:0,reflectDur:1.5,clashMul:70,aiCPM:200,aiTypo:5,aiMaxPrefix:3,aiInterrupt:70,aiDefend:50};
 const LABELS=[
  ['기본',[['hp','체력'],['dmgBase','파이어볼 기본 데미지'],['critChance','치명타 확률 % (오타 0번일 때)'],['critMult','치명타 배율']]],
  ['접두어 데미지',[['d0','일반 +'],['d1','고급 +'],['d2','희귀 +'],['d3','영웅 +'],['d4','전설 +'],['repeatMul','같은 접두어 반복 시 남는 비율 %']]],
@@ -109,6 +109,7 @@ const LABELS=[
  ['속도',[['refCPM','기준 타수 (분당)'],['baseCross','기준 타수일 때 횡단 시간 (초)'],['crossMin','가장 빠른 횡단 시간 (초)'],['crossMax','가장 느린 횡단 시간 (초)']]],
  ['홀리 쉴드',[['shieldBase','기본 피해 감소 %'],['s0','일반 + %'],['s1','고급 + %'],['s2','희귀 + %'],['s3','영웅 + %'],['s4','전설 + %'],['shieldMax','최대 감소 %'],['shieldDur','유지 시간 (초)']]],
  ['리플렉트',[['refExact','접두어가 똑같을 때 %'],['refSame','등급 구성이 같을 때 %'],['ref1','등급 한 칸 다를 때 %'],['ref2','두 칸 다를 때 %'],['ref3','세 칸 이상 다를 때 %'],['reflectDur','유지 시간 (초)']]],
+ ['공중 충돌',[['clashMul','이긴 쪽이 깎이는 양 (진 쪽 위력의 %)']]],
  ['파란 마법사 (AI)',[['aiCPM','타수 (분당)'],['aiTypo','오타율 %'],['aiMaxPrefix','공격 접두어 최대 개수'],['aiInterrupt','끊기 시도 확률 %'],['aiDefend','방어 시도 확률 %']]]
 ];
 let S=Object.assign({},DEF);
@@ -325,7 +326,7 @@ function update(dt){
     if(b.x-a.x<=radiusOf(a.power)+radiusOf(b.power)&&b.x-a.x>-20){
       const mx=(a.x+b.x)/2;puff(mx,LANE,'#ffd27a',22,55);
       if(Math.abs(a.power-b.power)<0.01){a.alive=b.alive=false;float(mx,LANE-14,'상쇄','#ffe9b0');}
-      else{const w=a.power>b.power?a:b,l=w===a?b:a;w.power-=l.power;l.alive=false;w.crit=false;float(mx,LANE-14,'상쇄','#ffe9b0');}
+      else{const w=a.power>b.power?a:b,l=w===a?b:a;w.power-=l.power*S.clashMul/100;l.alive=false;w.crit=false;float(mx,LANE-14,'상쇄','#ffe9b0');}
     }
   }
   for(const f of G.fbs){if(!f.alive||G.over)continue;if(f.dir>0&&f.x>=G.E.front)arrive(f,G.E);else if(f.dir<0&&f.x<=G.P.front)arrive(f,G.P);}
@@ -503,7 +504,7 @@ function fillHelp(){
 <li><b>홀리 쉴드</b>: 엔터 후 ${S.shieldDur}초 동안 피해를 ${S.shieldBase}% 줄여요. 접두어 등급이 높을수록 더 많이 줄어요(최대 ${S.shieldMax}%).</li>
 <li><b>리플렉트</b>: 엔터 후 ${S.reflectDur}초 동안 유지돼요. 날아오는 주문과 접두어가 똑같으면 ${S.refExact}%, 등급 구성만 같으면 ${S.refSame}% 확률로 되돌려 보내요. 등급이 한 칸 다르면 ${S.ref1}%, 두 칸 다르면 ${S.ref2}%로 떨어지고, 실패하면 그대로 맞아요.</li>
 <li>오른쪽 장에서 적이 쓰는 접두어를 보고 리플렉트를 준비하세요.</li></ul>
-<h3>공중 충돌</h3><ul><li>파이어볼끼리 부딪히면 센 쪽이 이기고, 위력 차이만큼 남아서 계속 날아가요. 같으면 둘 다 사라져요.</li></ul>`;
+<h3>공중 충돌</h3><ul><li>파이어볼끼리 부딪히면 센 쪽이 이겨요. 이긴 쪽은 진 쪽 위력의 ${S.clashMul}%만큼만 약해져서 계속 날아가요. 같으면 둘 다 사라져요.</li></ul>`;
 }
 function fillList(){
   const tiers=TIERS.map((t,i)=>`<p><b style="color:${t.ui}">${t.name}</b> <span style="color:#a89cc4">${t.range} · (데미지 +${S['d'+i]} · 쉴드 +${S['s'+i]}%)</span><br><span style="color:${t.ui}">${t.words.join(' · ')}</span></p>`).join('');
