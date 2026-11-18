@@ -33,6 +33,8 @@ body{min-height:100vh;min-height:100dvh;display:flex;justify-content:center;alig
 .row input{font-family:'Galmuri11',monospace;font-size:16px;width:6em;background:#0f0c20;color:#fff4d6;border:1px solid #6a5a9a;padding:.15em .3em;}
 .btns{display:flex;gap:.8em;flex-wrap:wrap;margin-top:1em;}
 #exit{position:absolute;left:50%;top:.6cqh;transform:translateX(-50%);z-index:11;display:none;min-width:0;padding:.05em .6em;border-width:1px;font-size:clamp(9px,1.4cqw,14px);}
+#fs{position:absolute;z-index:11;top:2.5cqh;right:calc(2cqw + 3.2em);min-width:0;padding:.25em .6em;font-size:clamp(12px,2.2cqw,20px);}
+#wrap.inbattle #fs{top:.6cqh;right:auto;left:calc(50% + 2.6em);padding:.05em .6em;border-width:1px;font-size:clamp(9px,1.4cqw,14px);}
 #result{flex-direction:column;align-items:center;justify-content:center;gap:2cqh;background:#0d0b1aa8;}
 #rtitle{font-family:'Galmuri11B',monospace;font-size:clamp(30px,10cqw,110px);margin:0;}
 #rsub{font-size:clamp(12px,2.2cqw,20px);color:#e6dcff;margin:0 0 1cqh;}
@@ -43,6 +45,7 @@ body{min-height:100vh;min-height:100dvh;display:flex;justify-content:center;alig
   <canvas id="cv"></canvas>
   <form id="tf" autocomplete="off" style="display:none"><input id="typer" type="text" enterkeyhint="send" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false" aria-label="주문 입력"></form>
   <button id="exit" class="btn" type="button">나가기</button>
+  <button id="fs" class="btn" type="button">전체화면</button>
 
   <div id="lobby" class="layer on">
     <h1 id="title">INCANT</h1>
@@ -454,12 +457,12 @@ const $=id=>document.getElementById(id);
 let resultShown=false;
 function show(id,on){$(id).classList.toggle('on',on);}
 function startBattle(){
-  newBattle();mode='battle';resultShown=false;
+  newBattle();mode='battle';resultShown=false;wrap.classList.add('inbattle');
   show('lobby',false);show('result',false);
   tf.style.display='block';exitBtn.style.display='block';
   typer.focus();
 }
-function toLobby(){mode='lobby';G=null;tf.style.display='none';exitBtn.style.display='none';typer.blur();show('result',false);show('lobby',true);}
+function toLobby(){wrap.classList.remove('inbattle');mode='lobby';G=null;tf.style.display='none';exitBtn.style.display='none';typer.blur();show('result',false);show('lobby',true);}
 function showResult(){
   resultShown=true;const win=G.E.hp<=0;
   $('rtitle').textContent=win?'승리!':'패배…';$('rtitle').style.color=win?'#ffe08a':'#b9a7d6';
@@ -471,6 +474,15 @@ $('bHelp').onclick=()=>{fillHelp();show('help',true);};
 $('bList').onclick=()=>{fillList();show('list',true);};
 $('gear').onclick=()=>{fillSettings();show('settings',true);};
 document.querySelectorAll('[data-close]').forEach(b=>b.onclick=()=>{show('help',false);show('list',false);show('settings',false);});
+const fsBtn=$('fs'),fsEl=()=>document.fullscreenElement||document.webkitFullscreenElement;
+if(!(document.fullscreenEnabled||document.webkitFullscreenEnabled))fsBtn.style.display='none';
+fsBtn.onclick=async()=>{
+  try{if(fsEl())await (document.exitFullscreen||document.webkitExitFullscreen).call(document);
+    else{const el=document.documentElement;await (el.requestFullscreen||el.webkitRequestFullscreen).call(el);}}catch(e){}
+  if(mode==='battle'&&G&&!G.over)typer.focus();
+};
+function updFs(){fsBtn.textContent=fsEl()?'창 모드':'전체화면';setTimeout(resize,60);}
+document.addEventListener('fullscreenchange',updFs);document.addEventListener('webkitfullscreenchange',updFs);
 $('bReset').onclick=()=>{S=Object.assign({},DEF);saveS();fillSettings();};
 function fillHelp(){
   $('helpBody').innerHTML=`
