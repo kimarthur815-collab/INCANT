@@ -117,13 +117,16 @@ const CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ',JUNG='ㅏ�
 const JONG=['','ㄱ','ㄲ','ㄳ','ㄴ','ㄵ','ㄶ','ㄷ','ㄹ','ㄺ','ㄻ','ㄼ','ㄽ','ㄾ','ㄿ','ㅀ','ㅁ','ㅂ','ㅄ','ㅅ','ㅆ','ㅇ','ㅈ','ㅊ','ㅋ','ㅌ','ㅍ','ㅎ'];
 const SPLIT={'ㅘ':'ㅗㅏ','ㅙ':'ㅗㅐ','ㅚ':'ㅗㅣ','ㅝ':'ㅜㅓ','ㅞ':'ㅜㅔ','ㅟ':'ㅜㅣ','ㅢ':'ㅡㅣ','ㄳ':'ㄱㅅ','ㄵ':'ㄴㅈ','ㄶ':'ㄴㅎ','ㄺ':'ㄹㄱ','ㄻ':'ㄹㅁ','ㄼ':'ㄹㅂ','ㄽ':'ㄹㅅ','ㄾ':'ㄹㅌ','ㄿ':'ㄹㅍ','ㅀ':'ㄹㅎ','ㅄ':'ㅂㅅ'};
 function jamo(str){let o='';for(const ch of str){const c=ch.charCodeAt(0);if(c>=0xAC00&&c<=0xD7A3){const i=c-0xAC00,b=JUNG[Math.floor((i%588)/28)],d=JONG[i%28];o+=CHO[Math.floor(i/588)]+(SPLIT[b]||b)+(d?(SPLIT[d]||d):'');}else o+=SPLIT[ch]||ch;}return o;}
+const ALL_PREFIXES=['갓','킹','메가','슈퍼','로열','오메가','하이퍼','디럭스','럭셔리','앰퍼러','울트라','이터널','퀘이사','로맨틱','얼티밋','엠페럴','레전더리','어메이징','인피니트','프리미엄','원더풀','앱솔루트','엘레강스','익스트림','임페리얼','판타스틱','안드로메다','엑설런트','스펙타큘러'];
 const TIERS=[
- {name:'일반',ink:'#6f6a7a',ui:'#cfc9dc',words:['갓','킹','메가','슈퍼']},
- {name:'고급',ink:'#2f8a3a',ui:'#86e08f',words:['로열','오메가','하이퍼','디럭스','럭셔리','앰퍼러','울트라','이터널']},
- {name:'희귀',ink:'#2a62c9',ui:'#86b6ff',words:['로맨틱','얼티밋','엠페럴','퀘이사','레전더리','어메이징','인피니트','프리미엄']},
- {name:'영웅',ink:'#8a3cc9',ui:'#cf9fff',words:['앱솔루트','엘레강스','익스트림','임페리얼','판타스틱']},
- {name:'전설',ink:'#d9620a',ui:'#ffb05a',words:['원더풀','안드로메다','엑설런트','스펙타큘러']}];
-const TIER_OF={};TIERS.forEach((t,i)=>t.words.forEach(w=>TIER_OF[w]=i));
+ {name:'일반',ink:'#6f6a7a',ui:'#cfc9dc',max:4,words:[]},
+ {name:'고급',ink:'#2f8a3a',ui:'#86e08f',max:7,words:[]},
+ {name:'희귀',ink:'#2a62c9',ui:'#86b6ff',max:9,words:[]},
+ {name:'영웅',ink:'#8a3cc9',ui:'#cf9fff',max:10,words:[]},
+ {name:'전설',ink:'#d9620a',ui:'#ffb05a',max:99,words:[]}];
+const TIER_OF={};
+for(const w of [...ALL_PREFIXES].sort((a,b)=>jamo(a).length-jamo(b).length)){const n=jamo(w).length,i=TIERS.findIndex(t=>n<=t.max);TIER_OF[w]=i;TIERS[i].words.push(w);}
+TIERS.forEach((t,i)=>{const ls=t.words.map(w=>jamo(w).length);t.range=Math.min(...ls)===Math.max(...ls)?Math.min(...ls)+'타':Math.min(...ls)+'~'+Math.max(...ls)+'타';});
 const PREFIXES=TIERS.flatMap(t=>t.words);
 const WORDS=[...PREFIXES,'파이어볼','홀리','쉴드','홀리쉴드','리플렉트'];
 function prefixSum(words,key){const seen={};let s=0;for(const w of words){const k=seen[w]=(seen[w]||0)+1;s+=S[key+TIER_OF[w]]*Math.pow(S.repeatMul/100,k-1);}return s;}
@@ -478,7 +481,7 @@ function fillHelp(){
 <li>치는 동안 마법사가 책을 펼쳐 읽어요. 책 왼쪽 장에 내 주문, 오른쪽 장에 적의 영창이 적혀요.</li></ul>
 <h3>세기와 속도</h3><ul>
 <li>접두어를 많이 붙일수록 강해요. 개수 제한은 없어요.</li>
-<li>길고 치기 어려운 접두어일수록 등급이 높고 더 강해요. 다 치면 책 속 단어가 등급 색으로 빛나요.</li>
+<li>타수(자모 수)가 많은 접두어일수록 등급이 높고 더 강해요. 다 치면 책 속 단어가 등급 색으로 빛나요.</li>
 <li>같은 접두어를 반복하면 할 때마다 효과가 ${S.repeatMul}%로 줄어요.</li>
 <li>빨리 칠수록 파이어볼이 빨리 날아가요.</li>
 <li>틀린 글자를 칠 때마다 데미지가 ${S.typoPen}%씩 줄어요(최대 ${S.typoMax}%). 고쳐도 기록돼요.</li>
@@ -491,12 +494,12 @@ function fillHelp(){
 <h3>공중 충돌</h3><ul><li>파이어볼끼리 부딪히면 센 쪽이 이기고, 위력 차이만큼 남아서 계속 날아가요. 같으면 둘 다 사라져요.</li></ul>`;
 }
 function fillList(){
-  const tiers=TIERS.map((t,i)=>`<p><b style="color:${t.ui}">${t.name}</b> <span style="color:#a89cc4">(데미지 +${S['d'+i]} · 쉴드 +${S['s'+i]}%)</span><br><span style="color:${t.ui}">${t.words.join(' · ')}</span></p>`).join('');
+  const tiers=TIERS.map((t,i)=>`<p><b style="color:${t.ui}">${t.name}</b> <span style="color:#a89cc4">${t.range} · (데미지 +${S['d'+i]} · 쉴드 +${S['s'+i]}%)</span><br><span style="color:${t.ui}">${t.words.join(' · ')}</span></p>`).join('');
   $('listBody').innerHTML=`
 <h3>접두어</h3><p>몇 개든 붙일 수 있어요. 같은 접두어를 반복하면 할 때마다 ${S.repeatMul}%로 약해져요.</p>${tiers}
 <h3>공격</h3><p><b>파이어볼</b> — 기본 데미지 ${S.dmgBase}</p><p class="ex">파이어볼 · 메가 파이어볼 · 스펙타큘러 임페리얼 파이어볼</p>
 <h3>방어</h3><p><b>홀리 쉴드</b> — 기본 피해 ${S.shieldBase}% 감소 + 접두어 등급만큼</p><p class="ex">홀리 쉴드 · 안드로메다 홀리 쉴드</p>
-<h3>반사</h3><p><b>리플렉트</b> — 접두어가 똑같으면 ${S.refExact}%, 등급 구성이 같으면 ${S.refSame}%</p><p class="ex">적이 '원더풀 메가 파이어볼'을 쏘면 → '원더풀 메가 리플렉트'(${S.refExact}%) 또는 '엑설런트 킹 리플렉트'(${S.refSame}%)</p>`;
+<h3>반사</h3><p><b>리플렉트</b> — 접두어가 똑같으면 ${S.refExact}%, 등급 구성이 같으면 ${S.refSame}%</p><p class="ex">적이 '원더풀 메가 파이어볼'을 쏘면 → '원더풀 메가 리플렉트'(${S.refExact}%) 또는 '프리미엄 킹 리플렉트'(${S.refSame}%)</p>`;
 }
 function fillSettings(){
   const b=$('setBody');b.innerHTML='';
