@@ -98,7 +98,7 @@ function drawBook(b){
   for(let r=0;r<3;r++)for(let c=0;c<5;c++)ctx.drawImage(img,sx[c],sy[r],sx[c+1]-sx[c],sy[r+1]-sy[r],dx[c],dy[r],dx[c+1]-dx[c],dy[r+1]-dy[r]);
 }
 
-const DEF={hp:100,dmgBase:10,d0:4,d1:7,d2:10,d3:13,d4:16,repeatMul:50,typoPen:10,typoMax:50,critChance:25,critMult:2,refCPM:300,baseCross:2.5,crossMin:1.2,crossMax:4,shieldBase:30,s0:10,s1:15,s2:20,s3:25,s4:30,shieldMax:90,shieldDur:2,refExact:100,refSame:80,ref1:40,ref2:10,ref3:0,reflectDur:1.5,aiCPM:200,aiTypo:5,aiMaxPrefix:3,aiInterrupt:70,aiDefend:50};
+const DEF={hp:100,dmgBase:10,d0:4,d1:7,d2:10,d3:13,d4:16,repeatMul:50,typoPen:10,typoMax:50,critChance:25,critMult:2,refCPM:300,baseCross:3.2,crossMin:1.6,crossMax:5,shieldBase:30,s0:10,s1:15,s2:20,s3:25,s4:30,shieldMax:90,shieldDur:2,refExact:100,refSame:80,ref1:40,ref2:10,ref3:0,reflectDur:1.5,aiCPM:200,aiTypo:5,aiMaxPrefix:3,aiInterrupt:70,aiDefend:50};
 const LABELS=[
  ['기본',[['hp','체력'],['dmgBase','파이어볼 기본 데미지'],['critChance','치명타 확률 % (오타 0번일 때)'],['critMult','치명타 배율']]],
  ['접두어 데미지',[['d0','일반 +'],['d1','고급 +'],['d2','희귀 +'],['d3','영웅 +'],['d4','전설 +'],['repeatMul','같은 접두어 반복 시 남는 비율 %']]],
