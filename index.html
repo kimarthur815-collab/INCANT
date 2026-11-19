@@ -706,7 +706,7 @@ function trail(f){
     case 'ice':if(Math.random()<.85)part({x:f.x-f.dir*4+rnd(-2,2),y:LANE+rnd(-2,2),vx:-f.dir*rnd(4,12),vy:rnd(3,11),life:rnd(.5,.9),col:pick(f.crit?['#ffffff','#ffc0c8','#ff9aa0']:['#ffffff','#bff4ff']),kind:Math.random()<.3?'plus':'dot'});break;
     case 'wind':part({x:bx,y:LANE+rnd(-3,3),vx:-f.dir*rnd(20,40),vy:rnd(-3,3),life:0.25,col:pick(f.crit?['#ffd0d8','#ff7a8a']:fx),kind:'dash'});break;
     case 'poison':if(Math.random()<.45)part({x:f.x-f.dir*14,y:LANE+Math.sin(f.age*14-6.3)*3,vx:-f.dir*6,vy:3,g:30,life:0.5,col:pick(f.crit?['#ff6a8a','#ff9aa0']:['#7ad02a','#8fd63a'])});break;
-    case 'silence':if(Math.random()<.5)part({x:bx,y:LANE+rnd(-3,3),vx:-f.dir*6,life:0.5,col:pick(fx)});break;
+    case 'silence':if(Math.random()<.18)part({x:f.x-f.dir*8,y:LANE+rnd(-3,3),vx:-f.dir*8,vy:-2,life:0.8,col:'#c9a8ff',kind:'dots'});break;
     case 'blackhole':{const a=rnd(0,Math.PI*2),r=f.size*2.2;part({x:f.x+Math.cos(a)*r,y:LANE+Math.sin(a)*r*0.7,vx:-Math.cos(a)*r*2.6,vy:-Math.sin(a)*r*1.8,life:0.38,col:pick(fx)});break;}
   }
 }
@@ -804,7 +804,8 @@ function drawProj(f){
       const hy=y+Math.sin(A*14)*3;disc(x+d,hy,3,P.head);px(Math.round(x+d*3),Math.round(hy-1),1,1,'#ffffff');px(Math.round(x+d*3),Math.round(hy-2),1,1,P.eye);px(Math.round(x+d*4),Math.round(hy+1),1,1,'#ffffff');px(Math.round(x+d*5),Math.round(hy+1),1,1,P.mouth);
       if(Math.floor(A*6)%2){px(Math.round(x+d*4),Math.round(hy+2),1,1,'#ffffff');px(Math.round(x+d*5),Math.round(hy+3),1,1,P.ven);}
       break;}
-    case 'silence':circle(x,y,4,'#9a8ad0',1);circle(x,y,2.5,'#5a4a8a',1);px(x,y,1,1,'#ffffff');break;
+    case 'silence':{for(let k=0;k<3;k++){const ph=((f.age*1.6+k/3)%1),rr=8-ph*6;ctx.globalAlpha=0.3+ph*0.7;circle(x,y,rr,k%2?'#b9a8ff':'#7a5ad0',1);}ctx.globalAlpha=1;
+      disc(x,y,2,'#3a2a6a');px(Math.round(x),Math.round(y),1,1,'#ffffff');break;}
     case 'blackhole':disc(x,y,r,'#0a0414');circle(x,y,r+1,'#7a3ad0',1);for(let i=0;i<10;i++){const a=i/10*Math.PI*2+now*6;px(Math.round(x+Math.cos(a)*(r+2.5)),Math.round(y+Math.sin(a)*(r+2.5)*0.8),1,1,'#e0c8ff');}break;
   }
 }
@@ -916,7 +917,7 @@ function draw(){
   for(const p of G.parts){ctx.globalAlpha=Math.max(0,1-p.t/p.life);const x=Math.round(p.x),y=Math.round(p.y);ctx.fillStyle=p.col;
     switch(p.kind){case 'plus':ctx.fillRect(x-1,y,3,1);ctx.fillRect(x,y-1,1,3);break;case 'star':ctx.fillRect(x-2,y,5,1);ctx.fillRect(x,y-2,1,5);ctx.fillStyle='#ffffff';ctx.fillRect(x,y,1,1);break;
       case 'dash':ctx.fillRect(x-2,y,4,1);break;case 'bubble':ctx.fillRect(x-1,y,1,1);ctx.fillRect(x+1,y,1,1);ctx.fillRect(x,y-1,1,1);ctx.fillRect(x,y+1,1,1);break;
-      case 'shard':ctx.fillRect(x,y,2,1);ctx.fillRect(x+1,y+1,1,1);break;default:ctx.fillRect(x,y,p.s,p.s);}}
+      case 'shard':ctx.fillRect(x,y,2,1);ctx.fillRect(x+1,y+1,1,1);break;case 'dots':ctx.fillRect(x,y,1,1);ctx.fillRect(x+2,y,1,1);ctx.fillRect(x+4,y,1,1);break;default:ctx.fillRect(x,y,p.s,p.s);}}
   ctx.globalAlpha=1;
   for(const f of G.floats){const k=f.t/f.life;ctx.globalAlpha=k>0.7?(1-k)/0.3:1;const pop=k<0.12?1+(0.12-k)*4:1;text(f.text,f.x,f.y-k*12,(f.big?8:6.5)*pop,f.col,'center',true,'#1b1236');}
   ctx.globalAlpha=1;
