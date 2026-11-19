@@ -403,6 +403,7 @@ function say(side,text,onend,volMul){
 /* ---------- 이미지 / 캔버스 ---------- */
 const IMG={},WHITE={};
 function loadImg(src){return new Promise(r=>{const i=new Image();i.onload=()=>r(i);i.onerror=()=>r(i);i.src=src;});}
+const TINT=new Map();function tintOf(img,col){let m=TINT.get(img);if(!m){m={};TINT.set(img,m);}if(!m[col]){const c=document.createElement('canvas');c.width=img.width;c.height=img.height;const x=c.getContext('2d');x.drawImage(img,0,0);x.globalCompositeOperation='source-in';x.fillStyle=col;x.fillRect(0,0,c.width,c.height);m[col]=c;}return m[col];}
 function whiteOf(img){const c=document.createElement('canvas');c.width=img.width;c.height=img.height;const x=c.getContext('2d');x.drawImage(img,0,0);x.globalCompositeOperation='source-in';x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);return c;}
 const cv=document.getElementById('cv'),ctx=cv.getContext('2d'),wrap=document.getElementById('wrap');
 let SC=1;
@@ -412,7 +413,7 @@ window.addEventListener('resize',resize);
 /* ---------- 상태 ---------- */
 let mode='lobby',G=null,now=0;
 const typer=document.getElementById('typer'),tf=document.getElementById('tf'),exitBtn=document.getElementById('exit');
-function mkC(side){return {side,foot:side?379:40,front:side?357:62,dir:side?-1:1,hp:S.hp,temp:0,text:'',typos:0,startT:0,lastInv:0,lastInputT:0,mana:S.manaMax,manaFlash:0,reflect:null,frost:0,frostMax:1,silence:0,poisons:[],dotAcc:0,flash:0,shake:0,dead:0,typingEndT:0,done:{},pops:{}};}
+function mkC(side){return {side,foot:side?379:40,front:side?357:62,dir:side?-1:1,hp:S.hp,temp:0,text:'',typos:0,startT:0,lastInv:0,lastInputT:0,mana:S.manaMax,manaFlash:0,reflect:null,heal:null,frost:0,frostMax:1,silence:0,poisons:[],dotAcc:0,flash:0,shake:0,dead:0,typingEndT:0,done:{},pops:{}};}
 function newBattle(practice){
   G={practice:!!practice,cut:null,st:{casts:0,ks:0,typos:0,typeTime:0,maxHit:0,crits:0,reflects:0,interrupted:0,dealt:0,t0:now},P:mkC(0),E:mkC(1),fbs:[],mets:[],pend:[],parts:[],rings:[],bolts:[],floats:[],over:false,overT:0,banner:1.1,quake:0,flash:null};
   G.E.ai={state:'wait',wait:1.6,ops:[],opT:0,hold:'',kind:'',holdT:0};
@@ -526,7 +527,7 @@ function castFrom(c,text,typos,cpm){
     case 'poison':launch({type:'poison',power:S.psnHit*mul,dot:(S.psnDot+bonus*S.psnMul)*mul,time:speedTime(S.psnTime,cpm)});break;
     case 'silence':launch({type:'silence',power:S.silPower,sil:(S.silBase+bonus/7)*mul,time:speedTime(S.silTime,cpm)});break;
     case 'blackhole':launch({type:'blackhole',power:0,size:Math.min(22,(S.bhSize+bonus/3)*mul),time:speedTime(S.bhTime,cpm)});break;
-    case 'heal':{const a=Math.min(S.hp-c.hp,(S.healBase+bonus*S.healMul)*mul);c.hp+=a;float(c.foot,HY,a<0.5?'체력 가득':(crit?'치명타! ':'')+'+'+Math.round(a),'#8af0a0',true);elemBurst('heal',c.foot,FLOOR-40,1.6);break;}
+    case 'heal':{const a=Math.min(S.hp-c.hp,(S.healBase+bonus*S.healMul)*mul);c.hp+=a;float(c.foot,HY,a<0.5?'체력 가득':(crit?'치명타! ':'')+'+'+Math.round(a),'#8af0a0',true);c.heal={t:0,crit};break;}
     case 'shield':{const a=(S.shBase+bonus*S.shMul)*mul,b=c.temp;c.temp=Math.min(S.shMax,c.temp+a);float(c.foot,HY,(crit?'치명타! ':'')+'보호막 +'+Math.round(c.temp-b),'#ffe08a',true);elemBurst('shield',c.foot,FLOOR-40,1.6);break;}
     case 'reflect':c.reflect={until:now+S.reflectDur,words,dur:S.reflectDur};float(c.foot,HY,'리플렉트 ×'+words.length,'#d6b8ff');break;
   }
@@ -656,6 +657,7 @@ function update(dt){
     c.flash=Math.max(0,c.flash-dt);c.shake=Math.max(0,c.shake-dt);if(c.dead)c.dead+=dt;
     c.mana=Math.min(S.manaMax,c.mana+S.manaRegen*dt);c.manaFlash=Math.max(0,c.manaFlash-dt);
     if(c.reflect&&now>=c.reflect.until)c.reflect=null;
+    if(c.heal){const h=c.heal;h.t+=dt;const k=healK(h.t);if(h.t>0.25&&h.t<1.1)for(let n=0;n<2;n++)if(Math.random()<dt*22)part({x:c.foot+rnd(-1,1)*(8+k*16),y:FLOOR-rnd(0,14),vy:rnd(-90,-55),life:rnd(.5,.9),col:pick(['#ffffff','#e8ffe8','#8af0a0']),kind:Math.random()<.3?'plus':'dot'});if(h.t>=1.6)c.heal=null;}
     c.frost=Math.max(0,c.frost-dt);c.silence=Math.max(0,c.silence-dt);
     if(c.temp>0)c.temp=Math.max(0,c.temp-S.shDecay*dt);
     if(c.poisons.length&&!G.over){
@@ -751,6 +753,16 @@ function drawChar(c,idle,read,wIdle,wRead){
   ctx.drawImage(img,x,y);
   if(c.flash>0){ctx.globalAlpha=Math.min(1,c.flash/0.14)*0.85;ctx.drawImage(wimg,x,y);}
   if(c.frost>0){ctx.globalAlpha=0.35*Math.min(1,c.frost*2);ctx.drawImage(wimg,x,y);}
+  if(c.heal){ctx.globalAlpha=0.35*healK(c.heal.t)*(c.dead?0:1);ctx.drawImage(tintOf(img,'#8af0a0'),x,y);}
+  ctx.globalAlpha=1;
+}
+function healK(t){return t<0.25?t/0.25:t<1.1?1:Math.max(0,1-(t-1.1)/0.5);}
+function drawHeal(c,front){
+  const h=c.heal;if(!h)return;const t=h.t,k=healK(t),x=Math.round(c.foot);if(k<=0)return;
+  if(front){if(t>0.25&&t<0.45){const q=(t-0.25)/0.2;ctx.globalAlpha=1-q;const rx=18+q*30;const n=Math.round(rx*5);for(let i=0;i<n;i++){const a=i/n*Math.PI*2;px(Math.round(x+Math.cos(a)*rx),Math.round(FLOOR-1+Math.sin(a)*rx*0.3),1,1,'#e8ffe8');}ctx.globalAlpha=1;}return;}
+  const w=Math.round(8+k*16),bot=t<0.25?TOP+(FLOOR-TOP)*k:FLOOR,hgt=Math.round(bot-TOP),mw=Math.round(w*0.55);
+  ctx.globalAlpha=0.3*k;px(x-w,TOP,w*2+1,hgt,'#3fd06a');ctx.globalAlpha=0.45*k;px(x-mw,TOP,mw*2+1,hgt,'#8af0a0');ctx.globalAlpha=0.8*k;px(x-2,TOP,5,hgt,'#e8ffe8');
+  ctx.globalAlpha=k;const o=Math.floor(now*40);for(let yy=TOP;yy<bot;yy+=2)if(((yy+o)&3)===0){px(x-w-1,yy,1,1,'#3fd06a');px(x+w+1,yy+1,1,1,'#3fd06a');}
   ctx.globalAlpha=1;
 }
 function drawAura(c){
@@ -909,9 +921,10 @@ function draw(){
   ctx.drawImage(IMG.bg_ingame,0,TOP,LW,FIELD_H);
   const P=G.P,E=G.E;
   for(const m of G.mets)drawMeteor(m);
+  drawHeal(P,false);drawHeal(E,false);
   drawChar(P,IMG.red_idle,IMG.red_read,WHITE.red_idle,WHITE.red_read);
   drawChar(E,IMG.blue_idle,IMG.blue_read,WHITE.blue_idle,WHITE.blue_read);
-  drawAura(P);drawAura(E);drawReflect(P);drawReflect(E);
+  drawHeal(P,true);drawHeal(E,true);drawAura(P);drawAura(E);drawReflect(P);drawReflect(E);
   for(const f of G.fbs)drawProj(f);
   ctx.restore();
   drawBook(BK);
