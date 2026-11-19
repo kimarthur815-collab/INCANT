@@ -269,8 +269,8 @@ function drawBook(b){
 /* ---------- 수치 ---------- */
 const DEF={hp:100,critChance:25,critMult:2,d0:3,d1:5,d2:7,d3:9,d4:11,repeatMul:50,typoPen:10,typoMax:50,
  refCPM:300,speedMin:50,speedMax:160,
- fireDmg:7,fireMul:1,fireTime:4.5, ltDmg:3,ltMul:0.5,ltTime:0.8, iceDmg:5,iceMul:0.7,iceTime:3.2,frostBase:2,
- windDmg:2,windMul:0.35,windTime:2.6,windGap:0.25,windCount:3, metDmg:12,metMul:1.2,metDelay:2,
+ fireDmg:7,fireMul:1,fireTime:4.5, ltDmg:11,ltMul:0.9,ltTime:0.8, iceDmg:5,iceMul:0.7,iceTime:3.2,frostBase:2,
+ windDmg:2,windMul:0.35,windTime:2.6,windGap:0.25,windCount:3, metDmg:4,metMul:0.6,metDelay:3.5,
  psnHit:2,psnDot:5,psnMul:0.8,psnDur:4,psnTime:3.2, silBase:3,silTime:3,silPower:5, bhSize:6,bhTime:5,
  healBase:4,healMul:1, shBase:10,shMul:1.5,shDecay:2,shMax:33,
  refExact:100,refSame:80,ref1:40,ref2:10,ref3:0,reflectDur:1.5,clashMul:70,bgmVol:60,sfxVol:80,
@@ -281,10 +281,10 @@ const LABELS=[
  ['오타',[['typoPen','오타 1번당 감소 %'],['typoMax','오타 감소 최대 %']]],
  ['속도',[['refCPM','기준 타수 (분당)'],['speedMin','가장 빠를 때 (기본 시간의 %)'],['speedMax','가장 느릴 때 (기본 시간의 %)']]],
  ['파이어볼',[['fireDmg','데미지'],['fireMul','접두어 배율'],['fireTime','횡단 시간 (초)']]],
- ['라이트닝',[['ltDmg','데미지'],['ltMul','접두어 배율'],['ltTime','횡단 시간 (초)']]],
+ ['썬더스트라이크',[['ltDmg','데미지'],['ltMul','접두어 배율'],['ltTime','횡단 시간 (초)']]],
  ['아이스 스피어',[['iceDmg','데미지'],['iceMul','접두어 배율'],['iceTime','횡단 시간 (초)'],['frostBase','성에 시간 (초)']]],
  ['윈드 커터',[['windDmg','칼날 하나 데미지'],['windMul','접두어 배율'],['windTime','횡단 시간 (초)'],['windGap','칼날 간격 (초)'],['windCount','칼날 개수']]],
- ['메테오',[['metDmg','데미지'],['metMul','접두어 배율'],['metDelay','떨어지기까지 (초)']]],
+ ['메테오',[['metDmg','데미지'],['metMul','접두어 배율'],['metDelay','떨어지는 시간 (초)']]],
  ['포이즌',[['psnHit','맞을 때 데미지'],['psnDot','지속 피해 총량'],['psnMul','접두어 배율 (지속 피해)'],['psnDur','지속 시간 (초)'],['psnTime','횡단 시간 (초)']]],
  ['사일런스',[['silBase','침묵 시간 (초)'],['silTime','횡단 시간 (초)']]],
  ['블랙홀',[['bhSize','크기'],['bhTime','횡단 시간 (초)']]],
@@ -298,7 +298,7 @@ const LABELS=[
  ['난이도: 어려움',[['cpm2','AI 타수'],['typo2','AI 오타율 %'],['int2','끊기 시도 %'],['def2','방어 시도 %']]]
 ];
 let S=Object.assign({},DEF);
-const SET_VER=2;
+const SET_VER=3;
 try{if(+localStorage.getItem('incant-settings-v')===SET_VER){const s=JSON.parse(localStorage.getItem('incant-settings')||'{}');for(const k in DEF)if(typeof s[k]==='number'&&isFinite(s[k]))S[k]=s[k];}}catch(e){}
 function saveS(){try{localStorage.setItem('incant-settings',JSON.stringify(S));localStorage.setItem('incant-settings-v',SET_VER);}catch(e){}}
 
@@ -322,7 +322,7 @@ TIERS.forEach(t=>{const ls=t.words.map(w=>jamo(w).length),a=Math.min(...ls),b=Ma
 const PREFIXES=TIERS.flatMap(t=>t.words);
 const SPELLS={
  fire:{name:'파이어볼',words:['파이어볼'],col:'#d23b12',ui:'#ff8a4a',fx:['#ff5a1f','#ffb030','#fff3b0']},
- lightning:{name:'라이트닝',words:['라이트닝'],col:'#a87800',ui:'#ffe066',fx:['#fff6a0','#ffe066','#ffffff']},
+ lightning:{name:'썬더스트라이크',words:['썬더','스트라이크'],joined:'썬더스트라이크',col:'#a87800',ui:'#ffe066',fx:['#fff6a0','#ffe066','#ffffff']},
  ice:{name:'아이스 스피어',words:['아이스','스피어'],joined:'아이스스피어',col:'#1f86c4',ui:'#8fe0ff',fx:['#bff4ff','#5fc8f0','#ffffff']},
  wind:{name:'윈드 커터',words:['윈드','커터'],joined:'윈드커터',col:'#1f9a78',ui:'#8af0cf',fx:['#c8fff0','#5fe0b8','#ffffff']},
  meteor:{name:'메테오',words:['메테오'],col:'#8a3a12',ui:'#ff9a5a',fx:['#7a4a2a','#ff7a2a','#ffd27a']},
@@ -549,7 +549,10 @@ function aiDecide(){
   const iv=60/aiCPM(),need=t=>jamo(t).length*iv;
   const attacking=ptxt!==''&&!/리플|홀리|쉴|힐/.test(ptxt);
   if(E.hp<S.hp*0.4&&Math.random()*100<d.heal)return aiStart(randPrefixes(rint(d.minPre,d.maxPre))+(Math.random()<0.5?'힐':'홀리 쉴드'));
-  if(attacking&&pPre>=2&&Math.random()*100<S['int'+diffIdx])return aiStart(randPrefixes(d.minPre)+'라이트닝');
+  if(attacking&&pPre>=2&&Math.random()*100<S['int'+diffIdx]){
+    const pre=randPrefixes(d.minPre),tm=need(pre+'메테오')+S.metDelay,tt=need(pre+'썬더스트라이크')+S.ltTime;
+    return aiStart(pre+(tm<tt?'메테오':'썬더스트라이크'));
+  }
   const inc=incoming(E);
   if(inc&&Math.random()*100<S['def'+diffIdx]){
     let txt,hold;
@@ -628,7 +631,8 @@ function update(dt){
   }
   for(const f of G.fbs){if(!f.alive||G.over)continue;if(f.dir>0&&f.x>=G.E.front)arrive(f,G.E);else if(f.dir<0&&f.x<=G.P.front)arrive(f,G.P);}
   G.fbs=G.fbs.filter(f=>f.alive);
-  for(const m of G.mets){m.t-=dt;if(m.t<=0&&!G.over){const t=C(m.target);
+  for(const m of G.mets){m.t-=dt;if(Math.random()<0.7){const p=meteorPos(m);part({x:p.x+p.side*3,y:p.y-3,vx:p.side*rnd(4,14),vy:rnd(-14,-4),g:10,life:rnd(.3,.6),col:pick(['#ff7a2a','#ffd27a','#a8321a']),s:Math.random()<.3?2:1});}
+    if(m.t<=0&&!G.over){const t=C(m.target);
     if(tryReflect(t,m.words)){m.target=m.owner;m.owner=t.side;m.t=m.total=S.metDelay;elemBurst('meteor',t.foot,FLOOR-60,1.5);}
     else{m.done=true;applyHit(t,{dmg:m.power,crit:m.crit,type:'meteor'});}}}
   G.mets=G.mets.filter(m=>!m.done&&!G.over);
@@ -702,15 +706,21 @@ function drawProj(f){
     case 'blackhole':disc(x,y,r,'#0a0414');circle(x,y,r+1,'#7a3ad0',1);for(let i=0;i<10;i++){const a=i/10*Math.PI*2+now*6;px(Math.round(x+Math.cos(a)*(r+2.5)),Math.round(y+Math.sin(a)*(r+2.5)*0.8),1,1,'#e0c8ff');}break;
   }
 }
-function drawMeteor(m){
-  const t=C(m.target),k=1-m.t/m.total,gx=t.foot;
-  ctx.globalAlpha=0.5+0.5*Math.sin(now*20);
-  for(let i=0;i<24;i++){const a=i/24*Math.PI*2,r=6+k*10;px(Math.round(gx+Math.cos(a)*r),Math.round(FLOOR-1+Math.sin(a)*r*0.25),1,1,'#ff5a3a');}
-  ctx.globalAlpha=1;
-  if(m.t<0.7){const q=1-m.t/0.7,sx=gx+(m.owner===0?-1:1)*-70*(1-q),sy=TOP-10+(FLOOR-24-TOP+10)*q;
-    for(let i=1;i<8;i++)disc(sx+(m.owner===0?-1:1)*i*3,sy-i*5,Math.max(1,7-i),i<3?'#ff7a2a':'#ffd27a');
-    disc(sx,sy,8,'#5a3420');disc(sx-1,sy-1,6,'#7a4a2a');px(Math.round(sx)-2,Math.round(sy)-3,2,2,'#ffb07a');}
+function meteorPos(m){
+  const t=C(m.target),k=Math.min(1,1-m.t/m.total),side=m.target===1?-1:1;
+  const sx=t.foot+side*90,sy=TOP-14,ex=t.foot,ey=FLOOR-26;
+  return {x:sx+(ex-sx)*k,y:sy+(ey-sy)*k,k,side};
 }
+function drawMeteor(m){
+  const t=C(m.target),p=meteorPos(m),r=5+Math.min(5,m.power/4);
+  ctx.globalAlpha=0.5+0.5*Math.sin(now*14);
+  for(let i=0;i<24;i++){const a=i/24*Math.PI*2,rr=5+p.k*9;px(Math.round(t.foot+Math.cos(a)*rr),Math.round(FLOOR-1+Math.sin(a)*rr*0.25),1,1,'#ff5a3a');}
+  ctx.globalAlpha=1;
+  for(let i=1;i<8;i++)disc(p.x+p.side*i*2.4,p.y-i*3.2,Math.max(1,r-i*0.7),i<3?'#ff7a2a':'#ffd27a');
+  ctx.globalAlpha=0.25;disc(p.x,p.y,r*1.8,'#ff7a2a');ctx.globalAlpha=1;
+  disc(p.x,p.y,r,'#5a3420');disc(p.x-1,p.y-1,r-2,'#7a4a2a');px(Math.round(p.x)-2,Math.round(p.y)-3,2,2,'#ffb07a');
+}
+
 const FS_LINE=()=>TX.fs;
 function layoutPage(c,str,w,ink){
   const lines=[[]];let x=0,ti=0;const seen={},fs=TX.fs;
@@ -873,10 +883,10 @@ function fillList(){
 <h3>접두어</h3><p>몇 개든 붙일 수 있어요. 접두어 보너스에 주문마다 정해진 배율이 곱해져요. 같은 접두어를 반복하면 할 때마다 ${S.repeatMul}%로 약해져요.</p>${tiers}
 <h3>공격</h3>
 <p>${sp('fire')} — 데미지 ${S.fireDmg}, 접두어 ×${S.fireMul}. 세지만 느려요.</p>
-<p>${sp('lightning')} — 데미지 ${S.ltDmg}, 접두어 ×${S.ltMul}. 약하지만 순식간에 날아가요. 영창 끊기용.</p>
+<p>${sp('lightning')} — 데미지 ${S.ltDmg}, 접두어 ×${S.ltMul}. 이름이 길어 치기 오래 걸리지만, 순식간에 날아가 세게 맞혀요.</p>
 <p>${sp('ice')} — 데미지 ${S.iceDmg}, 접두어 ×${S.iceMul}. 맞으면 ${S.frostBase}초 동안 책에 성에가 껴요.</p>
 <p>${sp('wind')} — 칼날 ${S.windCount}개 × 데미지 ${S.windDmg}, 접두어 ×${S.windMul}. 시간차로 날아가요.</p>
-<p>${sp('meteor')} — 데미지 ${S.metDmg}, 접두어 ×${S.metMul}. ${S.metDelay}초 뒤 하늘에서 떨어져요. 공중 충돌이 없어요.</p>
+<p>${sp('meteor')} — 데미지 ${S.metDmg}, 접두어 ×${S.metMul}. 약하지만 짧아서 빨리 쓸 수 있어요. 상대의 대각선 위에서 ${S.metDelay}초 동안 천천히 떨어져요. 공중 충돌과 블랙홀은 안 통해요.</p>
 <p>${sp('poison')} — 맞을 때 ${S.psnHit} + ${S.psnDur}초 동안 ${S.psnDot}, 접두어 ×${S.psnMul}. 지속 피해로는 영창이 안 끊겨요.</p>
 <h3>방해·보조</h3>
 <p>${sp('silence')} — 데미지 없음. 맞으면 ${S.silBase}초 동안 접두어 효과가 사라져요.</p>
