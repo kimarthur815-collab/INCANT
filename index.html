@@ -92,9 +92,9 @@ body{min-height:100vh;min-height:100dvh;display:flex;justify-content:center;alig
 
   <div id="diff" class="layer">
     <h2>난이도</h2>
-    <button class="btn" type="button" data-diff="0">쉬움<small>느린 AI, 짧은 주문 위주</small></button>
-    <button class="btn" type="button" data-diff="1">보통<small>모든 주문을 골고루</small></button>
-    <button class="btn" type="button" data-diff="2">어려움<small>빠르고 정확한 AI, 긴 접두어와 반사</small></button>
+    <button class="btn" type="button" data-diff="0">쉬움<small>느린 AI · 자동완성과 추천 주문</small></button>
+    <button class="btn" type="button" data-diff="1">보통<small>모든 주문을 골고루 · 자동완성</small></button>
+    <button class="btn" type="button" data-diff="2">어려움<small>빠르고 정확한 AI · 도움 없음</small></button>
     <button class="btn" type="button" id="bDiffBack">뒤로</button>
   </div>
 
@@ -283,7 +283,7 @@ const DEF={hp:100,critChance:25,critMult:2,d0:3,d1:5,d2:7,d3:9,d4:11,repeatMul:5
  windDmg:2,windMul:0.35,windTime:2.6,windGap:0.25,windCount:3, metDmg:4,metMul:0.6,metDelay:3.5,
  psnHit:2,psnDot:5,psnMul:0.8,psnDur:4,psnTime:3.2, silBase:3,silTime:3,silPower:5, bhSize:6,bhTime:5,
  healBase:4,healMul:1, shBase:10,shMul:1.5,shDecay:2,shMax:33,
- refExact:100,refSame:80,ref1:40,ref2:10,ref3:0,reflectDur:1.5,clashMul:70,bgmVol:60,sfxVol:80,voiceVol:100,
+ refExact:100,refSame:80,ref1:40,ref2:10,ref3:0,reflectDur:1.5,clashMul:70,bgmVol:60,sfxVol:80,voiceVol:100,hintDelay:3,
  cpm0:120,typo0:10,int0:20,def0:15, cpm1:200,typo1:5,int1:70,def1:50, cpm2:300,typo2:3,int2:90,def2:80};
 const LABELS=[
  ['기본',[['hp','체력'],['critChance','치명타 확률 % (오타 0번일 때)'],['critMult','치명타 배율']]],
@@ -302,6 +302,7 @@ const LABELS=[
  ['홀리 쉴드 (임시 체력)',[['shBase','기본 양'],['shMul','접두어 배율'],['shDecay','초당 줄어드는 양'],['shMax','최대 양']]],
  ['리플렉트',[['refExact','접두어가 똑같을 때 %'],['refSame','등급 구성이 같을 때 %'],['ref1','등급 한 칸 다를 때 %'],['ref2','두 칸 다를 때 %'],['ref3','세 칸 이상 다를 때 %'],['reflectDur','유지 시간 (초)']]],
  ['공중 충돌',[['clashMul','이긴 쪽이 깎이는 양 (진 쪽 위력의 %)']]],
+ ['도움',[['hintDelay','추천 주문이 나오기까지 (초)']]],
  ['소리',[['bgmVol','배경음악 음량 %'],['sfxVol','효과음 음량 %'],['voiceVol','목소리 음량 % (0이면 끔)']]],
  ['난이도: 쉬움',[['cpm0','AI 타수'],['typo0','AI 오타율 %'],['int0','끊기 시도 %'],['def0','방어 시도 %']]],
  ['난이도: 보통',[['cpm1','AI 타수'],['typo1','AI 오타율 %'],['int1','끊기 시도 %'],['def1','방어 시도 %']]],
@@ -367,9 +368,9 @@ function sameWords(a,b){return a.length===b.length&&[...a].sort().join()===[...b
 
 /* ---------- 난이도 ---------- */
 const DIFF=[
- {name:'쉬움',minPre:0,maxPre:1,minTier:0,maxTier:1,copy:30,heal:20,spells:{fire:5,lightning:3,ice:2,wind:1}},
- {name:'보통',minPre:0,maxPre:3,minTier:0,maxTier:4,copy:50,heal:50,spells:{fire:30,lightning:15,ice:15,wind:12,meteor:10,poison:10,silence:8}},
- {name:'어려움',minPre:1,maxPre:4,minTier:2,maxTier:4,copy:85,heal:75,spells:{fire:25,lightning:12,ice:15,wind:12,meteor:14,poison:12,silence:10}}];
+ {name:'쉬움',auto:true,rec:true,minPre:0,maxPre:1,minTier:0,maxTier:1,copy:30,heal:20,spells:{fire:5,lightning:3,ice:2,wind:1}},
+ {name:'보통',auto:true,rec:false,minPre:0,maxPre:3,minTier:0,maxTier:4,copy:50,heal:50,spells:{fire:30,lightning:15,ice:15,wind:12,meteor:10,poison:10,silence:8}},
+ {name:'어려움',auto:false,rec:false,minPre:1,maxPre:4,minTier:2,maxTier:4,copy:85,heal:75,spells:{fire:25,lightning:12,ice:15,wind:12,meteor:14,poison:12,silence:10}}];
 let diffIdx=1;
 try{const d=parseInt(localStorage.getItem('incant-diff'));if(d>=0&&d<3)diffIdx=d;}catch(e){}
 
@@ -403,7 +404,7 @@ window.addEventListener('resize',resize);
 /* ---------- 상태 ---------- */
 let mode='lobby',G=null,now=0;
 const typer=document.getElementById('typer'),tf=document.getElementById('tf'),exitBtn=document.getElementById('exit');
-function mkC(side){return {side,foot:side?379:40,front:side?357:62,dir:side?-1:1,hp:S.hp,temp:0,text:'',typos:0,startT:0,lastInv:0,reflect:null,frost:0,frostMax:1,silence:0,poisons:[],dotAcc:0,flash:0,shake:0,dead:0,typingEndT:0,done:{},pops:{}};}
+function mkC(side){return {side,foot:side?379:40,front:side?357:62,dir:side?-1:1,hp:S.hp,temp:0,text:'',typos:0,startT:0,lastInv:0,lastInputT:0,reflect:null,frost:0,frostMax:1,silence:0,poisons:[],dotAcc:0,flash:0,shake:0,dead:0,typingEndT:0,done:{},pops:{}};}
 function newBattle(practice){
   G={practice:!!practice,cut:null,st:{casts:0,ks:0,typos:0,typeTime:0,maxHit:0,crits:0,reflects:0,interrupted:0,dealt:0,t0:now},P:mkC(0),E:mkC(1),fbs:[],mets:[],pend:[],parts:[],rings:[],bolts:[],floats:[],over:false,overT:0,banner:1.1,quake:0,flash:null};
   G.E.ai={state:'wait',wait:1.6,ops:[],opT:0,hold:'',kind:'',holdT:0};
@@ -420,12 +421,13 @@ function syncInput(){
   if(performance.now()-clearT<250&&typer.value!==''&&typer.value===clearTail){typer.value='';return;}
   if(G.cut){typer.value=G.P.text;return;}
   const P=G.P,v=typer.value;
+  if(v!==P.text)P.lastInputT=now;
   if(P.text.trim()===''&&v.trim()!==''){P.startT=now;P.typos=0;P.lastInv=0;}
   const inv=invalidCount(v);
   if(inv>P.lastInv)P.typos+=inv-P.lastInv;
   P.lastInv=inv;P.text=v;
 }
-function clearInput(){clearTail=[...typer.value].slice(-1).join('');clearT=performance.now();typer.value='';if(G){G.P.text='';G.P.lastInv=0;}}
+function clearInput(){clearTail=[...typer.value].slice(-1).join('');clearT=performance.now();typer.value='';if(G){G.P.text='';G.P.lastInv=0;G.P.lastInputT=now;G.rec=null;}}
 typer.addEventListener('compositionstart',()=>{composing=true;});
 typer.addEventListener('compositionend',()=>{composing=false;setTimeout(syncInput,0);});
 typer.addEventListener('input',syncInput);
@@ -696,6 +698,28 @@ function trail(f){
   }
 }
 
+/* ---------- 초보 도움 ---------- */
+function hintsOn(){if(!G)return {auto:false,rec:false};if(G.practice)return {auto:true,rec:true};const d=DIFF[diffIdx];return {auto:d.auto,rec:d.rec};}
+const CAND=[...[...PREFIXES].sort((a,b)=>TIER_OF[b]-TIER_OF[a]),...Object.values(SPELLS).map(s=>s.words[0])];
+const PAIR={};for(const k in SPELLS){const w=SPELLS[k].words;if(w.length===2)PAIR[w[0]]=w[1];}
+function makeRec(){
+  const P=G.P,inc=incoming(P),lowT=TIERS.slice(0,3).flatMap(t=>t.words),pre=n=>{let s='';for(let i=0;i<n;i++)s+=pick(lowT)+' ';return s;};
+  if(inc&&Math.random()<0.6){return Math.random()<0.5&&inc.words?inc.words.map(w=>w+' ').join('')+'리플렉트':pre(1)+'홀리 쉴드';}
+  if(P.hp<S.hp*0.4&&Math.random()<0.5)return pre(1)+'힐';
+  return pre(rint(1,2))+pick(['파이어볼','썬더스트라이크','아이스 스피어','윈드 커터','메테오','포이즌']);
+}
+function ghostFor(text){
+  if(!text)return '';
+  if(G.rec&&G.rec.length>text.length&&jamo(G.rec).startsWith(jamo(text)))return G.rec.slice(text.length);
+  const toks=tokens(text);if(!toks.length)return '';
+  if(/\s$/.test(text))return PAIR[toks[toks.length-1]]||'';
+  const last=toks[toks.length-1];
+  if(WORDS.includes(last))return PAIR[last]?' '+PAIR[last]:'';
+  const lj=jamo(last);
+  for(const w of CAND)if(w.length>=last.length&&jamo(w).startsWith(lj)&&w!==last)return w.slice(last.length);
+  return '';
+}
+
 /* ---------- 그리기 ---------- */
 function px(x,y,w,h,col){ctx.fillStyle=col;ctx.fillRect(x,y,w,h);}
 function disc(cx,cy,r,col){ctx.fillStyle=col;const R=Math.round(r);for(let dy=-R;dy<=R;dy++){const w=Math.floor(Math.sqrt(Math.max(0,r*r-dy*dy)));ctx.fillRect(Math.round(cx)-w,Math.round(cy)+dy,w*2+1,1);}}
@@ -784,7 +808,7 @@ function layoutPage(c,str,w,ink){
   }
   return lines;
 }
-function drawPage(c,pg,label,str,ink,stat,showCursor,hint){
+function drawPage(c,pg,label,str,ink,stat,showCursor,hint,ghost){
   text(label,pg.x,TX.label,TX.small,'#9a87b8');
   if(str===''&&hint)text(hint,pg.x,TX.top,TX.small*1.1,'#b5a8c9');
   let lines=layoutPage(c,str,pg.w,ink);
@@ -804,6 +828,7 @@ function drawPage(c,pg,label,str,ink,stat,showCursor,hint){
       ctx.globalAlpha=1;
     }
     if(showCursor&&i===lines.length-1&&Math.floor(now*2.5)%2===0){const l=ln[ln.length-1];px(Math.round(pg.x+(l?l.x+l.w:0))+1,y-TX.fs*0.85,Math.max(1,TX.fs/7),TX.fs,ink);}
+    if(ghost&&i===lines.length-1){const l=ln[ln.length-1];let gx=l?l.x+l.w:0,gy=y;ctx.font=TX.fs+'px Galmuri11';const gw=ctx.measureText(ghost).width;if(gx+gw>pg.w&&i<TX.lines-1){gx=0;gy=y+TX.lh;}ctx.globalAlpha=0.45;text(ghost,pg.x+gx+2,gy,TX.fs,'#7a6a96');ctx.globalAlpha=1;}
   });
   for(const k in c.done)if(!live[k]){delete c.done[k];delete c.pops[k];}
   if(stat)text(stat,pg.x,TX.stat,TX.small,'#8a7aa8');
@@ -837,7 +862,10 @@ function draw(){
   ctx.restore();
   drawBook(BK);
   const focused=document.activeElement===typer;
-  drawPage(P,PL,'나의 주문',P.text,'#3b2a5c','접두어 '+countPrefixes(P.text)+' · 오타 '+P.typos,focused&&!G.over,focused?'':'눌러서 주문 입력');
+  const hs=hintsOn();let hintTxt=focused?'':'눌러서 주문 입력',ghost='';
+  if(hs.rec&&!G.over&&!G.cut&&P.text.trim()===''&&now-P.lastInputT>=S.hintDelay){if(!G.rec||now-G.recT>5){G.rec=makeRec();G.recT=now;}hintTxt='추천: '+G.rec;}
+  if(hs.auto&&!G.over)ghost=ghostFor(P.text);
+  drawPage(P,PL,'나의 주문',P.text,'#3b2a5c','접두어 '+countPrefixes(P.text)+' · 오타 '+P.typos,focused&&!G.over,hintTxt,ghost);
   drawPage(E,PR,'적의 영창',E.text,'#24406e',E.text?'접두어 '+countPrefixes(E.text):'',E.ai.state==='typing',null);
   ctx.save();if(q>0)ctx.translate(Math.round(rnd(-q,q)),Math.round(rnd(-q,q)));
   for(const r of G.rings){const k=r.t/r.life;ctx.globalAlpha=1-k;circle(r.x,r.y,r.r0+(r.r1-r.r0)*k,r.col,r.w);}
@@ -917,6 +945,7 @@ function fillHelp(){
 <li>주문은 <b>접두어 + 주문 이름</b>이고 띄어쓰기로 구분해요. <span class="ex">예) 울트라 슈퍼 파이어볼</span></li>
 <li>엔터를 누르면 시전돼요. 형식이 틀리면 불발이에요.</li>
 <li>책 왼쪽 장에 내 주문, 오른쪽 장에 적의 영창이 적혀요.</li>
+<li>쉬움과 연습 모드에서는 치는 중에 나머지 글자가 흐리게 보이고, ${S.hintDelay}초 동안 아무것도 안 치면 추천 주문이 떠요. 보통은 흐린 글자만, 어려움은 도움이 없어요.</li>
 <li>접두어를 다 칠 때마다 마법사가 그 단어를 외치고, 시전하면 잠깐 게임이 멈춘 채 주문 이름을 외쳐요. 목소리는 수치 조절 화면에서 골라요.</li></ul>
 <h3>세기와 속도</h3><ul>
 <li>접두어를 많이 붙일수록 강해요. 개수 제한은 없어요.</li>
