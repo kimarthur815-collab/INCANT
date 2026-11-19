@@ -766,10 +766,19 @@ function drawHeal(c,front){
   else{ctx.globalAlpha=k;const o=Math.floor(now*40);for(let yy=TOP;yy<bot;yy+=2)if(((yy+o)&3)===0){px(x-w-1,yy,1,1,'#3fd06a');px(x+w+1,yy+1,1,1,'#3fd06a');}}
   ctx.globalAlpha=1;
 }
+const SHW=[6,7,8,8,8,8,8,8,8,8,8,8,8,7,7,6,5,4,3,2,1,0];let SHIMG=null;
+function shieldImg(){if(SHIMG)return SHIMG;const mkc=(w,h)=>{const c=document.createElement('canvas');c.width=w;c.height=h;return c;};
+  const sh=mkc(17,22),x=sh.getContext('2d'),P=(a,b,w,h,c)=>{x.fillStyle=c;x.fillRect(a,b,w,h);};
+  SHW.forEach((w,i)=>{const l=8-w;if(i===0)P(l,0,w*2+1,1,'#fff6cf');else if(w<=1)P(l,i,w*2+1,1,'#b07d0a');else{P(l,i,w*2+1,1,'#e0b030');P(l,i,1,1,'#b07d0a');P(l+1,i,1,1,'#fff6cf');P(8+w,i,1,1,'#7a5408');}});
+  P(7,2,2,14,'#ffffff');P(3,5,10,2,'#ffffff');
+  const gl=mkc(33,41),y=gl.getContext('2d');y.fillStyle='#ffe08a';for(let yy=-20;yy<=20;yy++){const w=Math.floor(16*Math.sqrt(1-(yy/20)**2));y.fillRect(16-w,yy+20,w*2+1,1);}
+  return SHIMG={sh,gl};}
 function drawAura(c){
-  if(c.temp<=0.05)return;const a=Math.min(1,c.temp/15),cx=c.foot,cy=FLOOR-38;
-  ctx.globalAlpha=a*(0.6+0.3*Math.sin(now*8));
-  for(let i=0;i<48;i++){const t=i/48*Math.PI*2+now*1.5,r=24+Math.sin(now*6+i)*1.5;px(Math.round(cx+Math.cos(t)*r*0.75),Math.round(cy+Math.sin(t)*r),i%3?1:2,i%3?1:2,i%2?'#ffe08a':'#fff6cf');}
+  if(c.temp<=0.05)return;const a=Math.max(0.2,Math.min(1,c.temp/15)),sx=Math.round(c.foot+c.dir*24),sy=Math.round(FLOOR-50+Math.sin(now*3)*2),I=shieldImg();
+  ctx.globalAlpha=0.25*a;ctx.drawImage(I.gl,sx-16,sy-9);
+  ctx.globalAlpha=a;ctx.drawImage(I.sh,sx-8,sy);
+  if(Math.floor(now*3)%3===0){px(sx-6,sy+2,3,1,'#ffffff');px(sx-5,sy+1,1,3,'#ffffff');}
+  ctx.globalAlpha=0.5*a;for(let k=0;k<6;k++){const yy=sy+((now*28+k*4)%22);px(sx-10,Math.round(yy),1,1,'#fff6cf');}
   ctx.globalAlpha=1;
 }
 function drawReflect(c){
