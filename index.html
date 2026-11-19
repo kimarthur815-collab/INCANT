@@ -796,7 +796,9 @@ function drawProj(f){
       for(let k=0;k<6;k++){const a=a0+k*Math.PI/3;for(let rr=1;rr<=R;rr++)px(Math.round(x+Math.cos(a)*rr),Math.round(y+Math.sin(a)*rr),1,1,rr<R*0.5?'#ffffff':oc);
       const bx=x+Math.cos(a)*R*0.7,by=y+Math.sin(a)*R*0.7;px(Math.round(bx+Math.cos(a+1)*1.5),Math.round(by+Math.sin(a+1)*1.5),1,1,bc);px(Math.round(bx+Math.cos(a-1)*1.5),Math.round(by+Math.sin(a-1)*1.5),1,1,bc);}
       disc(x,y,cr?1.4:1.2,'#ffffff');break;}
-    case 'wind':for(let i=-5;i<=5;i++){const yy=y+i,xx=x-d*Math.round(Math.abs(i)*Math.abs(i)*0.18);px(xx,yy,2,1,Math.abs(i)<2?'#ffffff':'#8af0cf');}break;
+    case 'wind':{const a0=f.age*18*d;
+      for(let k=0;k<3;k++)for(let q=0;q<7;q++){const a=a0+k*Math.PI*2/3+q*0.22*d,rr=1+q*0.9;px(Math.round(x+Math.cos(a)*rr),Math.round(y+Math.sin(a)*rr),1,1,q<2?'#ffffff':q<5?'#8af0cf':'#1f9a78');}
+      px(Math.round(x),Math.round(y),1,1,'#ffffff');break;}
     case 'poison':disc(x,y,4,'#6fb82a');disc(x,y,2.5,'#8fd63a');px(x-1,y-2,1,1,'#b04fd0');px(x+1,y+1,1,1,'#b04fd0');px(x,y-3,1,1,'#ffffff');break;
     case 'silence':circle(x,y,4,'#9a8ad0',1);circle(x,y,2.5,'#5a4a8a',1);px(x,y,1,1,'#ffffff');break;
     case 'blackhole':disc(x,y,r,'#0a0414');circle(x,y,r+1,'#7a3ad0',1);for(let i=0;i<10;i++){const a=i/10*Math.PI*2+now*6;px(Math.round(x+Math.cos(a)*(r+2.5)),Math.round(y+Math.sin(a)*(r+2.5)*0.8),1,1,'#e0c8ff');}break;
