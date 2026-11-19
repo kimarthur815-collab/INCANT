@@ -540,7 +540,7 @@ function tryReflect(t,words){
   if(!(t.reflect&&now<t.reflect.until))return false;
   const exact=sameWords(t.reflect.words,words),d=tierMismatch(t.reflect.words,words);
   const ch=exact?S.refExact:d===0?S.refSame:d===1?S.ref1:d===2?S.ref2:S.ref3;
-  if(Math.random()*100<ch){float(t.foot,HY,exact?'완벽한 반사!':'반사!','#d6b8ff',true);elemBurst('reflect',t.front,LANE,1.5);sfx('reflect_ok');if(t.side===0)G.st.reflects++;return true;}
+  if(Math.random()*100<ch){float(t.foot,HY,exact?'완벽한 반사!':'반사!','#d6b8ff',true);t.reflect.hitT=now;elemBurst('reflect',t.front,LANE,1.5);sfx('reflect_ok');if(t.side===0)G.st.reflects++;return true;}
   float(t.foot,HY-9,'반사 실패','#b9a7d6');return false;
 }
 function arrive(fb,t){
@@ -783,11 +783,17 @@ function drawAura(c){
   ctx.globalAlpha=0.5*a;for(let k=0;k<6;k++){const yy=sy+((now*28+k*4)%22);px(sx-10,Math.round(yy),1,1,cr?'#ff9aa0':'#fff6cf');}
   ctx.globalAlpha=1;
 }
+const RPH=46,rpW=i=>Math.min(8,1+Math.min(i,RPH-1-i));let RPIMG=null;
+function reflectImg(){if(RPIMG)return RPIMG;const mk=(fill,l,r)=>{const c=document.createElement('canvas');c.width=8;c.height=RPH;const x=c.getContext('2d');
+  for(let i=0;i<RPH;i++){const w=rpW(i),x0=4-Math.floor(w/2);x.fillStyle=fill;x.fillRect(x0,i,w,1);x.fillStyle=l;x.fillRect(x0,i,1,1);if(w>1){x.fillStyle=r;x.fillRect(x0+w-1,i,1,1);}}return c;};
+  return RPIMG={n:mk('rgba(168,122,255,0.55)','#e8dcff','#7d4fd0'),f:mk('rgba(255,255,255,0.8)','#ffffff','#ffffff')};}
 function drawReflect(c){
-  if(!c.reflect)return;const left=(c.reflect.until-now)/c.reflect.dur,x=c.front+c.dir*6;
-  ctx.globalAlpha=Math.min(1,left*3);
-  for(let y=FLOOR-76;y<=FLOOR-30;y+=2)px(x,y,2,1,(Math.floor(y/2+now*20)%3)?'#c79bff':'#ffffff');
-  for(let i=0;i<6;i++){const y=FLOOR-76+((now*40+i*8)%46);px(x-c.dir*2,Math.round(y),1,1,'#ffffff');}
+  if(!c.reflect)return;const R=c.reflect,left=(R.until-now)/R.dur,x=Math.round(c.front+c.dir*6),top=FLOOR-76,sh=R.hitT!=null?now-R.hitT:-1,I=reflectImg();
+  const al=Math.max(0,Math.min(1,left*3));ctx.globalAlpha=al;
+  ctx.drawImage(sh>=0&&sh<0.12?I.f:I.n,x-4,top);
+  const gy=top-8+Math.floor((now*38)%(RPH+16));ctx.globalAlpha=al*0.85;
+  for(let k=0;k<8;k++){for(const dy of [0,1]){const y=gy+k+dy,i=y-top;if(i<0||i>=RPH)continue;const w=rpW(i),x0=x-Math.floor(w/2),xx=x-4+k;if(xx>=x0&&xx<x0+w)px(xx,y,1,1,'#ffffff');}}
+  if(sh>=0&&sh<0.3){ctx.globalAlpha=al*(1-sh/0.3);const d=c.dir;px(x+d*7,LANE-5,1,1,'#ffffff');px(x+d*9,LANE-9,1,1,'#e8dcff');px(x+d*7,LANE+6,1,1,'#ffffff');px(x+d*11,LANE+2,1,1,'#e8dcff');px(x+d*8,LANE,2,1,'#ffffff');}
   ctx.globalAlpha=1;
 }
 function drawStatus(c){
