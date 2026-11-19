@@ -701,7 +701,7 @@ function update(dt){
 function trail(f){
   const fx=SPELLS[f.type].fx,bx=f.x-f.dir*radOf(f)*0.7;
   switch(f.type){
-    case 'fire':for(let q=0;q<2;q++)part({x:f.x-f.dir*radOf(f)*0.6,y:LANE+rnd(-1,1)*radOf(f)*0.6,vx:-f.dir*rnd(10,30),vy:rnd(-16,-6),g:4,life:rnd(.4,.8),col:pick(['#ffd060','#ff6a1a','#ffb030']),s:Math.random()<.3?2:1});break;
+    case 'fire':for(let q=0;q<2;q++)part({x:f.x-f.dir*radOf(f)*0.6,y:LANE+rnd(-1,1)*radOf(f)*0.6,vx:-f.dir*rnd(10,30),vy:rnd(-16,-6),g:4,life:rnd(.4,.8),col:pick(f.crit?['#ff9aa0','#ff3b3b','#ffd060']:['#ffd060','#ff6a1a','#ffb030']),s:Math.random()<.3?2:1});break;
     case 'lightning':if(Math.random()<.6)part({x:bx,y:LANE+rnd(-3,3),vx:rnd(-20,20),vy:rnd(-20,20),life:0.15,col:pick(fx)});break;
     case 'ice':if(Math.random()<.6)part({x:bx,y:LANE+rnd(-2,2),vx:-f.dir*rnd(4,10),vy:rnd(4,10),life:0.5,col:pick(fx),kind:Math.random()<.3?'plus':'dot'});break;
     case 'wind':part({x:bx,y:LANE+rnd(-3,3),vx:-f.dir*rnd(20,40),vy:rnd(-3,3),life:0.25,col:pick(fx),kind:'dash'});break;
@@ -775,10 +775,10 @@ function drawProj(f){
   ctx.globalAlpha=0.22;disc(x,y,r*1.9,fx[1]);ctx.globalAlpha=1;
   switch(f.type){
     case 'fire':{
-      const k=r/5,tl=Math.round(23*k),cols=['#ffffff','#fff6d0','#ffd060','#ffb030','#ff8a1f','#f0601a','#e0401a','#b02a14','#7a1a10'];
+      const k=r/5,tl=Math.round(23*k),cols=f.crit?['#ffffff','#ffe0e0','#ff9aa0','#ff5a6a','#e8203a','#c01430','#8a0c22','#5a0a1a','#2a0610']:['#ffffff','#fff6d0','#ffd060','#ffb030','#ff8a1f','#f0601a','#e0401a','#b02a14','#7a1a10'];
       for(let i=tl;i>=1;i--){const rr=5.5*k-0.24*i;if(rr<=0.3)continue;const wy=Math.sin(f.age*22+i*0.7/k)*(i*0.09);disc(x-d*i,y+wy,rr,cols[Math.min(cols.length-1,Math.floor(i/k/2.6))]);}
       ctx.globalAlpha=0.25;disc(x,y,r*1.8,f.crit?'#ff3b6b':'#ff8a1f');ctx.globalAlpha=1;
-      disc(x,y,r+Math.sin(f.age*40)*0.5*k,f.crit?'#ff3b6b':'#ff7a1a');disc(x+d*0.5*k,y,r*0.72,'#ffd060');disc(x+d*k,y,Math.max(1,r*0.4),'#ffffff');
+      disc(x,y,r+Math.sin(f.age*40)*0.5*k,f.crit?'#e8203a':'#ff7a1a');disc(x+d*0.5*k,y,r*0.72,f.crit?'#ff9aa0':'#ffd060');disc(x+d*k,y,Math.max(1,r*0.4),'#ffffff');
       break;}
     case 'lightning':{ctx.fillStyle=Math.random()<.5?'#ffffff':'#fff6a0';let yy=y;for(let i=0;i<18;i++){yy+=rint(-1,1);ctx.fillRect(Math.round(x-d*i),Math.round(yy),1,1);}disc(x,y,2,'#ffffff');break;}
     case 'ice':for(let i=0;i<12;i++){const w=Math.max(0,3-Math.abs(i-4)*0.6);px(Math.round(x-d*i),Math.round(y-w),1,Math.round(w*2)+1,i<2?'#ffffff':i<6?'#bff4ff':'#5fc8f0');}break;
