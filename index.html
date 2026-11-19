@@ -686,7 +686,7 @@ function update(dt){
   }
   for(const f of G.fbs){if(!f.alive||G.over)continue;if(f.dir>0&&f.x>=G.E.front)arrive(f,G.E);else if(f.dir<0&&f.x<=G.P.front)arrive(f,G.P);}
   G.fbs=G.fbs.filter(f=>f.alive);
-  for(const m of G.mets){m.t-=dt;{const p=meteorPos(m);if(Math.random()<0.8)part({x:p.x+p.side*4,y:p.y-4,vx:p.side*rnd(6,16),vy:rnd(-14,-4),g:10,life:rnd(.3,.6),col:pick(['#ffd060','#ff6a1a','#a8321a']),s:Math.random()<.3?2:1});if(Math.random()<0.6)part({x:p.x+p.side*rnd(5,9),y:p.y-rnd(6,10),vx:p.side*rnd(6,14),vy:rnd(-18,-10),life:rnd(.7,1),col:pick(['#4a4458','#6a6478']),s:Math.random()<.4?2:1});}
+  for(const m of G.mets){m.t-=dt;{const p=meteorPos(m);if(Math.random()<0.8)part({x:p.x+p.side*4,y:p.y-4,vx:p.side*rnd(6,16),vy:rnd(-14,-4),g:10,life:rnd(.3,.6),col:pick(m.crit?['#ff9aa0','#ff3b3b','#ffd060']:['#ffd060','#ff6a1a','#a8321a']),s:Math.random()<.3?2:1});if(Math.random()<0.6)part({x:p.x+p.side*rnd(5,9),y:p.y-rnd(6,10),vx:p.side*rnd(6,14),vy:rnd(-18,-10),life:rnd(.7,1),col:pick(m.crit?['#5a3448','#7a5468']:['#4a4458','#6a6478']),s:Math.random()<.4?2:1});}
     if(m.t<=0&&!G.over){const t=C(m.target);
     if(tryReflect(t,m.words)){m.target=m.owner;m.owner=t.side;m.t=m.total=S.metDelay;elemBurst('meteor',t.foot,FLOOR-60,1.5);}
     else{m.done=true;applyHit(t,{dmg:m.power,crit:m.crit,type:'meteor'});}}}
@@ -810,16 +810,17 @@ function meteorPos(m){
   return {x:sx+(ex-sx)*k,y:sy+(ey-sy)*k,k,side};
 }
 function drawMeteor(m){
-  const t=C(m.target),p=meteorPos(m),R=5+Math.min(5,m.power/4),k=R/6.5,sd=p.side;
+  const t=C(m.target),p=meteorPos(m),R=5+Math.min(5,m.power/4),k=R/6.5,sd=p.side,cr=m.crit;
+  const TC=cr?['#ffe0e8','#ff9aa0','#e8203a','#8a0c22']:['#fff3b0','#ffb030','#ff5a1f','#a8321a'],RC=cr?['#8a5a4a','#5a3428','#3a1c18']:['#8a5a3a','#5a3420','#3a2418'];
   ctx.globalAlpha=0.5+0.5*Math.sin(now*14);
   for(let i=0;i<24;i++){const a=i/24*Math.PI*2,rr=5+p.k*9;px(Math.round(t.foot+Math.cos(a)*rr),Math.round(FLOOR-1+Math.sin(a)*rr*0.25),1,1,'#ff5a3a');}
   ctx.globalAlpha=1;
-  for(let i=11;i>=1;i--)disc(p.x+sd*i*2.2*k,p.y-i*3*k,Math.max(1,(7.5-i*0.55)*k),i<3?'#fff3b0':i<5?'#ffb030':i<8?'#ff5a1f':'#a8321a');
-  ctx.globalAlpha=0.3;disc(p.x,p.y,11*k,'#ff7a1a');ctx.globalAlpha=1;
+  for(let i=11;i>=1;i--)disc(p.x+sd*i*2.2*k,p.y-i*3*k,Math.max(1,(7.5-i*0.55)*k),TC[i<3?0:i<5?1:i<8?2:3]);
+  ctx.globalAlpha=0.3;disc(p.x,p.y,11*k,cr?'#ff3b6b':'#ff7a1a');ctx.globalAlpha=1;
   const n=Math.ceil(R+2);
-  for(let dy=-n;dy<=n;dy++)for(let dx=-n;dx<=n;dx++){const a=Math.atan2(dy,dx),rr=R+Math.sin(a*5)*1.2*k;if(dx*dx+dy*dy<=rr*rr){const l=dx*(-sd)+dy;px(Math.round(p.x)+dx,Math.round(p.y)+dy,1,1,l<-4*k?'#8a5a3a':l>3*k?'#3a2418':'#5a3420');}}
-  const glow=Math.floor(now*10)%2?'#ffd060':'#ff8a1f';
-  for(const [a,b,c2] of [[-2,-1,1],[1,1,2],[-1,2,0],[2,-2,1]]){const X=Math.round(p.x+a*k),Yy=Math.round(p.y+b*k);px(X,Yy,1,1,'#ff8a1f');px(X+1,Yy+c2%2,1,1,glow);}
+  for(let dy=-n;dy<=n;dy++)for(let dx=-n;dx<=n;dx++){const a=Math.atan2(dy,dx),rr=R+Math.sin(a*5)*1.2*k;if(dx*dx+dy*dy<=rr*rr){const l=dx*(-sd)+dy;px(Math.round(p.x)+dx,Math.round(p.y)+dy,1,1,l<-4*k?RC[0]:l>3*k?RC[2]:RC[1]);}}
+  const cc=cr?'#ff3b4b':'#ff8a1f',glow=Math.floor(now*10)%2?(cr?'#ff9aa0':'#ffd060'):cc;
+  for(const [a,b,c2] of [[-2,-1,1],[1,1,2],[-1,2,0],[2,-2,1]]){const X=Math.round(p.x+a*k),Yy=Math.round(p.y+b*k);px(X,Yy,1,1,cc);px(X+1,Yy+c2%2,1,1,glow);}
 }
 
 const FS_LINE=()=>TX.fs;
