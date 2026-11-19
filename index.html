@@ -388,6 +388,8 @@ const VO={voices:[],sel:[0,1],ok:'speechSynthesis' in window};
 try{const v=JSON.parse(localStorage.getItem('incant-voice')||'null');if(v&&v.length===2)VO.sel=v.map(x=>Math.max(0,Math.min(3,x|0)));}catch(e){}
 function loadVoices(){if(!VO.ok)return;VO.voices=speechSynthesis.getVoices().filter(v=>/^ko/i.test(v.lang));}
 if(VO.ok){loadVoices();try{speechSynthesis.addEventListener('voiceschanged',loadVoices);}catch(e){speechSynthesis.onvoiceschanged=loadVoices;}}
+function shout(side,text){VO.shoutUntil=performance.now()+Math.min(6000,1500+160*[...text].length);say(side,text,()=>{VO.shoutUntil=0;});}
+function shouting(){return !!VO.shoutUntil&&performance.now()<VO.shoutUntil;}
 function say(side,text,onend,volMul){
   let done=false;const fin=ok=>{if(!done){done=true;if(onend)onend(ok);}};
   if(!VO.ok||!AU.on||S.voiceVol<=0){fin(false);return;}
@@ -415,7 +417,7 @@ let mode='lobby',G=null,now=0;
 const typer=document.getElementById('typer'),tf=document.getElementById('tf'),exitBtn=document.getElementById('exit');
 function mkC(side){return {side,foot:side?379:40,front:side?357:62,dir:side?-1:1,hp:S.hp,temp:0,text:'',typos:0,startT:0,lastInv:0,lastInputT:0,mana:S.manaMax,manaFlash:0,reflect:null,heal:null,frost:0,frostMax:1,silence:0,poisons:[],dotAcc:0,flash:0,shake:0,dead:0,typingEndT:0,done:{},pops:{}};}
 function newBattle(practice){
-  G={practice:!!practice,cut:null,st:{casts:0,ks:0,typos:0,typeTime:0,maxHit:0,crits:0,reflects:0,interrupted:0,dealt:0,t0:now},P:mkC(0),E:mkC(1),fbs:[],mets:[],pend:[],parts:[],rings:[],bolts:[],floats:[],over:false,overT:0,banner:1.1,quake:0,flash:null};
+  G={practice:!!practice,st:{casts:0,ks:0,typos:0,typeTime:0,maxHit:0,crits:0,reflects:0,interrupted:0,dealt:0,t0:now},P:mkC(0),E:mkC(1),fbs:[],mets:[],pend:[],parts:[],rings:[],bolts:[],floats:[],over:false,overT:0,banner:1.1,quake:0,flash:null};
   G.E.ai={state:'wait',wait:1.6,ops:[],opT:0,hold:'',kind:'',holdT:0};
   typer.value='';composing=false;clearT=-1e9;
 }
@@ -428,7 +430,6 @@ let composing=false,lastSubmit=0,clearT=-1e9,clearTail='';
 function syncInput(){
   if(mode!=='battle'||!G||G.over||G.P.dead){typer.value='';return;}
   if(performance.now()-clearT<250&&typer.value!==''&&typer.value===clearTail){typer.value='';return;}
-  if(G.cut){typer.value=G.P.text;return;}
   const P=G.P,v=typer.value;
   if(v!==P.text)P.lastInputT=now;
   if(P.text.trim()===''&&v.trim()!==''){P.startT=now;P.typos=0;P.lastInv=0;}
@@ -445,7 +446,7 @@ typer.addEventListener('keydown',e=>{if(e.key==='Enter'||e.keyCode===13){e.preve
 tf.addEventListener('submit',e=>{e.preventDefault();doSubmit();});
 function doSubmit(){
   const t=performance.now();if(t-lastSubmit<150)return;
-  if(mode!=='battle'||!G||G.over||G.cut)return;
+  if(mode!=='battle'||!G||G.over)return;
   syncInput();
   const P=G.P;if(P.text.trim()==='')return;
   lastSubmit=t;
@@ -502,8 +503,8 @@ function speedTime(base,cpm){base=Math.max(0.05,base||0.05);return Math.min(base
 function beginCast(c,text,typos,cpm){
   const r=parseSpell(text);
   if(!r||!r.kind){castFrom(c,text,typos,cpm);return;}
-  const line=[...r.pre,SPELLS[r.kind].name].join(' ');G.cut={c,text,typos,cpm,t:0,ended:false,max:Math.min(6,1.0+0.16*[...line].length)};
-  say(c.side,line,()=>{if(G&&G.cut)G.cut.ended=true;});
+  shout(c.side,[...r.pre,SPELLS[r.kind].name].join(' '));
+  castFrom(c,text,typos,cpm);
 }
 function castFrom(c,text,typos,cpm){
   const r=parseSpell(text);
@@ -646,7 +647,6 @@ function radOf(f){
 }
 function update(dt){
   if(mode!=='battle'||!G)return;
-  if(G.cut){const k=G.cut;k.t+=dt;if((k.ended&&k.t>=0.8)||k.t>=k.max){G.cut=null;castFrom(k.c,k.text,k.typos,k.cpm);}return;}
   G.banner=Math.max(0,G.banner-dt);G.quake=Math.max(0,G.quake-dt*6);
   if(G.flash){G.flash.t+=dt;if(G.flash.t>=G.flash.life)G.flash=null;}
   aiUpdate(dt);
@@ -902,7 +902,7 @@ function drawPage(c,pg,label,str,ink,stat,showCursor,hint,ghost){
     for(const s of ln){
       if(s.ws)continue;
       const cx=pg.x+s.x+s.w/2;
-      if(s.key&&!c.done[s.key]){c.done[s.key]=1;c.pops[s.key]=0.4;if(s.tier!==undefined){bookBurst(cx,y-3,s.tier);sfx('prefix',s.tier,c.side===0);if(!G.cut)say(c.side,s.t,null,c.side===1?0.4:1);}else if(s.spell){elemBurst(s.spell,cx,y-3,1.3);sfx('word',s.spell,c.side===0);}}
+      if(s.key&&!c.done[s.key]){c.done[s.key]=1;c.pops[s.key]=0.4;if(s.tier!==undefined){bookBurst(cx,y-3,s.tier);sfx('prefix',s.tier,c.side===0);if(!shouting())say(c.side,s.t,null,c.side===1?0.4:1);}else if(s.spell){elemBurst(s.spell,cx,y-3,1.3);sfx('word',s.spell,c.side===0);}}
       const pop=s.key&&c.pops[s.key]?c.pops[s.key]:0;
       ctx.globalAlpha=s.alpha||1;
       if(pop>0){const g=s.tier!==undefined?0.6+s.tier*0.15:0.8;text(s.t,cx,y+pop*3,TX.fs*(1+pop*g),s.col,'center',true,'#ffffff');}
@@ -948,7 +948,7 @@ function draw(){
   drawBook(BK);
   const focused=document.activeElement===typer;
   const hs=hintsOn();let hintTxt=focused?'':'눌러서 주문 입력',ghost='';
-  if(hs.rec&&!G.over&&!G.cut&&P.text.trim()===''&&now-P.lastInputT>=S.hintDelay){if(!G.rec||now-G.recT>5){G.rec=makeRec();G.recT=now;}hintTxt='추천: '+G.rec;}
+  if(hs.rec&&!G.over&&P.text.trim()===''&&now-P.lastInputT>=S.hintDelay){if(!G.rec||now-G.recT>5){G.rec=makeRec();G.recT=now;}hintTxt='추천: '+G.rec;}
   if(hs.auto&&!G.over)ghost=ghostFor(P.text);
   drawPage(P,PL,'나의 주문',P.text,'#3b2a5c','접두어 '+countPrefixes(P.text)+' · 오타 '+P.typos+(P.text.trim()?' · 마나 '+Math.ceil(spellCost(parseSpell(P.text))||0)+'/'+Math.floor(P.mana):''),focused&&!G.over,hintTxt,ghost);
   drawPage(E,PR,'적의 영창',E.text,'#24406e',E.text?'접두어 '+countPrefixes(E.text):'',E.ai.state==='typing',null);
@@ -968,7 +968,6 @@ function draw(){
   if(G.practice){const st=G.st,cpm=st.typeTime>0?Math.round(st.ks/(st.typeTime/60)):0;text('허수아비',LW-8,6.5,6,'#ffffff','right',true,'#1b1236');text('누적 '+Math.round(st.dealt)+' · 최대 '+Math.round(st.maxHit)+' · 평균 '+cpm+'타',LW-8,14,5.5,'#ffe08a','right',false,'#1b1236');text('연습 모드',LW/2,16.5,5,'#9a87b8','center');}
   else{hpBar(E,LW-158,'파란 마법사','#4a7ce0',true);text(DIFF[diffIdx].name,LW/2,16.5,5,'#9a87b8','center');}
   if(G.flash){ctx.globalAlpha=0.35*(1-G.flash.t/G.flash.life);px(0,0,LW,LH,G.flash.col);ctx.globalAlpha=1;}
-  if(G.cut){ctx.globalAlpha=Math.min(1,G.cut.t/0.08);px(0,0,LW,LH,'#ffffff');ctx.globalAlpha=1;}
   if(G.banner>0){ctx.globalAlpha=Math.min(1,G.banner*3);text('시작!',LW/2,62,16,'#ffe08a','center',true,'#1b1236');ctx.globalAlpha=1;}
 }
 
@@ -976,7 +975,7 @@ function draw(){
 const $=id=>document.getElementById(id);
 let resultShown=false;
 function show(id,on){$(id).classList.toggle('on',on);}
-function stopVoice(){try{if(VO.ok)speechSynthesis.cancel();}catch(e){}}
+function stopVoice(){VO.shoutUntil=0;try{if(VO.ok)speechSynthesis.cancel();}catch(e){}}
 function startBattle(practice){
   stopVoice();newBattle(practice===true);mode='battle';resultShown=false;wrap.classList.add('inbattle');
   wrap.classList.remove('inresult');show('lobby',false);show('result',false);show('diff',false);
@@ -1092,7 +1091,7 @@ function fillSettings(){
 
 /* ---------- 루프 ---------- */
 let last=0;
-function loop(t){const dt=Math.min(0.05,(t-last)/1000||0);last=t;if(!(mode==='battle'&&G&&G.cut))now+=dt;update(dt);draw();requestAnimationFrame(loop);}
+function loop(t){const dt=Math.min(0.05,(t-last)/1000||0);last=t;now+=dt;update(dt);draw();requestAnimationFrame(loop);}
 (async()=>{
   for(const k in SRC)IMG[k]=await loadImg(SRC[k]);
   for(const k of ['red_idle','red_read','blue_idle','blue_read'])WHITE[k]=whiteOf(IMG[k]);
