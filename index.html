@@ -703,7 +703,7 @@ function trail(f){
   switch(f.type){
     case 'fire':for(let q=0;q<2;q++)part({x:f.x-f.dir*radOf(f)*0.6,y:LANE+rnd(-1,1)*radOf(f)*0.6,vx:-f.dir*rnd(10,30),vy:rnd(-16,-6),g:4,life:rnd(.4,.8),col:pick(f.crit?['#ff9aa0','#ff3b3b','#ffd060']:['#ffd060','#ff6a1a','#ffb030']),s:Math.random()<.3?2:1});break;
     case 'lightning':(f.hist||(f.hist=[])).push({x:f.x,y:LANE+zigL(Math.floor(now*14),0),t:now});if(f.hist.length>60)f.hist.shift();if(Math.random()<.8)part({x:f.x-f.dir*8,y:LANE+rnd(-2,2),vx:rnd(-20,20),vy:rnd(-20,20),life:0.18,col:pick(['#ffffff','#8ad8ff'])});break;
-    case 'ice':if(Math.random()<.6)part({x:bx,y:LANE+rnd(-2,2),vx:-f.dir*rnd(4,10),vy:rnd(4,10),life:0.5,col:pick(fx),kind:Math.random()<.3?'plus':'dot'});break;
+    case 'ice':if(Math.random()<.85)part({x:f.x-f.dir*4+rnd(-2,2),y:LANE+rnd(-2,2),vx:-f.dir*rnd(4,12),vy:rnd(3,11),life:rnd(.5,.9),col:pick(['#ffffff','#bff4ff']),kind:Math.random()<.3?'plus':'dot'});break;
     case 'wind':part({x:bx,y:LANE+rnd(-3,3),vx:-f.dir*rnd(20,40),vy:rnd(-3,3),life:0.25,col:pick(fx),kind:'dash'});break;
     case 'poison':if(Math.random()<.5)part({x:bx,y:LANE+rnd(-2,2),vx:-f.dir*5,vy:rnd(4,14),g:20,life:0.5,col:pick(fx),kind:'bubble'});break;
     case 'silence':if(Math.random()<.5)part({x:bx,y:LANE+rnd(-3,3),vx:-f.dir*6,life:0.5,col:pick(fx)});break;
@@ -789,7 +789,9 @@ function drawProj(f){
       lineP(x,y,x-d*7,y-5,'#fff6a0');lineP(x-d*12,y+zigL(seed,2),x-d*17,y+6,'#fff06a');
       disc(x+d,y,2.5,'#ffffff');px(x+d*3,y,1,1,'#ffffff');px(x+d*4,y,1,1,'#fff6a0');
       break;}
-    case 'ice':for(let i=0;i<12;i++){const w=Math.max(0,3-Math.abs(i-4)*0.6);px(Math.round(x-d*i),Math.round(y-w),1,Math.round(w*2)+1,i<2?'#ffffff':i<6?'#bff4ff':'#5fc8f0');}break;
+    case 'ice':{const a0=f.age*8*d;for(let k=0;k<6;k++){const a=a0+k*Math.PI/3;for(let rr=1;rr<=5;rr++)px(Math.round(x+Math.cos(a)*rr),Math.round(y+Math.sin(a)*rr),1,1,rr<3?'#ffffff':'#8fe0ff');
+      const bx=x+Math.cos(a)*3.5,by=y+Math.sin(a)*3.5;px(Math.round(bx+Math.cos(a+1)*1.5),Math.round(by+Math.sin(a+1)*1.5),1,1,'#bff4ff');px(Math.round(bx+Math.cos(a-1)*1.5),Math.round(by+Math.sin(a-1)*1.5),1,1,'#bff4ff');}
+      disc(x,y,1.2,'#ffffff');break;}
     case 'wind':for(let i=-5;i<=5;i++){const yy=y+i,xx=x-d*Math.round(Math.abs(i)*Math.abs(i)*0.18);px(xx,yy,2,1,Math.abs(i)<2?'#ffffff':'#8af0cf');}break;
     case 'poison':disc(x,y,4,'#6fb82a');disc(x,y,2.5,'#8fd63a');px(x-1,y-2,1,1,'#b04fd0');px(x+1,y+1,1,1,'#b04fd0');px(x,y-3,1,1,'#ffffff');break;
     case 'silence':circle(x,y,4,'#9a8ad0',1);circle(x,y,2.5,'#5a4a8a',1);px(x,y,1,1,'#ffffff');break;
