@@ -289,7 +289,7 @@ const DEF={hp:100,critChance:25,critMult:2,d0:3,d1:5,d2:7,d3:9,d4:11,repeatMul:5
  windDmg:2,windMul:0.35,windTime:2.6,windGap:0.25,windCount:3, metDmg:4,metMul:0.6,metDelay:3.5,
  psnHit:2,psnDot:5,psnMul:0.8,psnDur:4,psnTime:3.2, silBase:3,silTime:3,silPower:5, bhSize:6,bhTime:5,
  healBase:4,healMul:1, shBase:10,shMul:1.5,shDecay:2,shMax:33,
- refExact:100,refSame:80,ref1:40,ref2:10,ref3:0,reflectDur:1.5,clashMul:70,bgmVol:60,sfxVol:80,voiceVol:100,hintDelay:3,
+ refExact:100,refSame:80,ref1:40,ref2:10,ref3:0,reflectDur:1.5,clashMul:70,bgmVol:60,sfxVol:80,voiceVol:100,hintDelay:3,manaMax:100,manaRegen:8,c_prefix:3,c_fire:15,c_lightning:20,c_ice:15,c_wind:15,c_meteor:15,c_poison:12,c_silence:15,c_blackhole:20,c_heal:20,c_shield:15,c_reflect:10,
  cpm0:120,typo0:10,int0:20,def0:15, cpm1:200,typo1:5,int1:70,def1:50, cpm2:300,typo2:3,int2:90,def2:80};
 const LABELS=[
  ['기본',[['hp','체력'],['critChance','치명타 확률 % (오타 0번일 때)'],['critMult','치명타 배율']]],
@@ -308,6 +308,7 @@ const LABELS=[
  ['홀리 쉴드 (임시 체력)',[['shBase','기본 양'],['shMul','접두어 배율'],['shDecay','초당 줄어드는 양'],['shMax','최대 양']]],
  ['리플렉트',[['refExact','접두어가 똑같을 때 %'],['refSame','등급 구성이 같을 때 %'],['ref1','등급 한 칸 다를 때 %'],['ref2','두 칸 다를 때 %'],['ref3','세 칸 이상 다를 때 %'],['reflectDur','유지 시간 (초)']]],
  ['공중 충돌',[['clashMul','이긴 쪽이 깎이는 양 (진 쪽 위력의 %)']]],
+ ['마나',[['manaMax','최대 마나'],['manaRegen','초당 회복'],['c_prefix','접두어 하나당 추가 비용'],['c_fire','파이어볼'],['c_lightning','썬더스트라이크'],['c_ice','아이스 스피어'],['c_wind','윈드 커터'],['c_meteor','메테오'],['c_poison','포이즌'],['c_silence','사일런스'],['c_blackhole','블랙홀'],['c_heal','힐'],['c_shield','홀리 쉴드'],['c_reflect','리플렉트']]],
  ['도움',[['hintDelay','추천 주문이 나오기까지 (초)']]],
  ['소리',[['bgmVol','배경음악 음량 %'],['sfxVol','효과음 음량 %'],['voiceVol','목소리 음량 % (0이면 끔)']]],
  ['난이도: 쉬움',[['cpm0','AI 타수'],['typo0','AI 오타율 %'],['int0','끊기 시도 %'],['def0','방어 시도 %']]],
@@ -315,7 +316,7 @@ const LABELS=[
  ['난이도: 어려움',[['cpm2','AI 타수'],['typo2','AI 오타율 %'],['int2','끊기 시도 %'],['def2','방어 시도 %']]]
 ];
 let S=Object.assign({},DEF);
-const SET_VER=3;
+const SET_VER=4;
 try{if(+localStorage.getItem('incant-settings-v')===SET_VER){const s=JSON.parse(localStorage.getItem('incant-settings')||'{}');for(const k in DEF)if(typeof s[k]==='number'&&isFinite(s[k]))S[k]=s[k];}}catch(e){}
 function saveS(){try{localStorage.setItem('incant-settings',JSON.stringify(S));localStorage.setItem('incant-settings-v',SET_VER);}catch(e){}}
 
@@ -368,6 +369,7 @@ function parseSpell(text){
   if(!pre.every(p=>PREFIXES.includes(p)))return {kind:null};
   return {kind,n:pre.length,pre};
 }
+function spellCost(r){return r&&r.kind?Math.max(0,S['c_'+r.kind]+S.c_prefix*r.pre.length):0;}
 function prefixSum(words){const seen={};let s=0;for(const w of words){const k=seen[w]=(seen[w]||0)+1;s+=S['d'+TIER_OF[w]]*Math.pow(S.repeatMul/100,k-1);}return s;}
 function tierMismatch(a,b){const ca={},cb={};a.forEach(w=>ca[TIER_OF[w]]=(ca[TIER_OF[w]]||0)+1);b.forEach(w=>cb[TIER_OF[w]]=(cb[TIER_OF[w]]||0)+1);let inter=0;for(const k in ca)inter+=Math.min(ca[k],cb[k]||0);return Math.max(a.length,b.length)-inter;}
 function sameWords(a,b){return a.length===b.length&&[...a].sort().join()===[...b].sort().join();}
@@ -410,7 +412,7 @@ window.addEventListener('resize',resize);
 /* ---------- 상태 ---------- */
 let mode='lobby',G=null,now=0;
 const typer=document.getElementById('typer'),tf=document.getElementById('tf'),exitBtn=document.getElementById('exit');
-function mkC(side){return {side,foot:side?379:40,front:side?357:62,dir:side?-1:1,hp:S.hp,temp:0,text:'',typos:0,startT:0,lastInv:0,lastInputT:0,reflect:null,frost:0,frostMax:1,silence:0,poisons:[],dotAcc:0,flash:0,shake:0,dead:0,typingEndT:0,done:{},pops:{}};}
+function mkC(side){return {side,foot:side?379:40,front:side?357:62,dir:side?-1:1,hp:S.hp,temp:0,text:'',typos:0,startT:0,lastInv:0,lastInputT:0,mana:S.manaMax,manaFlash:0,reflect:null,frost:0,frostMax:1,silence:0,poisons:[],dotAcc:0,flash:0,shake:0,dead:0,typingEndT:0,done:{},pops:{}};}
 function newBattle(practice){
   G={practice:!!practice,cut:null,st:{casts:0,ks:0,typos:0,typeTime:0,maxHit:0,crits:0,reflects:0,interrupted:0,dealt:0,t0:now},P:mkC(0),E:mkC(1),fbs:[],mets:[],pend:[],parts:[],rings:[],bolts:[],floats:[],over:false,overT:0,banner:1.1,quake:0,flash:null};
   G.E.ai={state:'wait',wait:1.6,ops:[],opT:0,hold:'',kind:'',holdT:0};
@@ -446,6 +448,9 @@ function doSubmit(){
   syncInput();
   const P=G.P;if(P.text.trim()==='')return;
   lastSubmit=t;
+  const pr=parseSpell(P.text),cost=spellCost(pr);
+  if(cost>P.mana){P.manaFlash=0.5;float(P.foot,HY,'마나 부족 ('+Math.ceil(cost)+' 필요)','#7fb6ff');sfx('fizzle');return;}
+  P.mana-=cost;
   const ks=jamo(P.text.trim()).length,el=Math.max(0.15,now-P.startT);
   const st=G.st;st.casts++;st.ks+=ks;st.typos+=P.typos;st.typeTime+=el;
   beginCast(P,P.text,P.typos,ks/(el/60));
@@ -628,6 +633,7 @@ function aiUpdate(dt){
     else if(ai.holdT>5){E.text='';ai.state='wait';ai.wait=0.4;}
   }
   if(ai.state==='fire'){
+    const cost=spellCost(parseSpell(E.text));if(cost>E.mana)return;E.mana-=cost;
     const ks=jamo(E.text.trim()).length,el=Math.max(0.15,E.typingEndT-E.startT);
     const tx=E.text;E.text='';beginCast(E,tx,E.typos,ks/(el/60));E.typos=0;ai.state='wait';ai.wait=rnd(0.8,1.8);
   }
@@ -648,6 +654,7 @@ function update(dt){
   for(const c of [G.P,G.E]){
     for(const k in c.pops){c.pops[k]-=dt;if(c.pops[k]<=0)delete c.pops[k];}
     c.flash=Math.max(0,c.flash-dt);c.shake=Math.max(0,c.shake-dt);if(c.dead)c.dead+=dt;
+    c.mana=Math.min(S.manaMax,c.mana+S.manaRegen*dt);c.manaFlash=Math.max(0,c.manaFlash-dt);
     if(c.reflect&&now>=c.reflect.until)c.reflect=null;
     c.frost=Math.max(0,c.frost-dt);c.silence=Math.max(0,c.silence-dt);
     if(c.temp>0)c.temp=Math.max(0,c.temp-S.shDecay*dt);
@@ -846,12 +853,13 @@ function drawPage(c,pg,label,str,ink,stat,showCursor,hint,ghost){
   }
 }
 function hpBar(c,x,name,col,right){
-  const w=150,h=5,y=9,k=c.hp/S.hp;
+  const w=150,h=5,y=8,k=c.hp/S.hp;
   text(name,right?x+w:x,6.5,6,'#ffffff',right?'right':'left',true,'#1b1236');
   text(Math.ceil(c.hp)+(c.temp>0.5?' +'+Math.ceil(c.temp):''),right?x:x+w,6.5,6,c.temp>0.5?'#ffe08a':'#ffffff',right?'left':'right',false,'#1b1236');
   px(x-1,y-1,w+2,h+2,'#1b1236');px(x,y,w,h,'#3a2f55');
   const fw=Math.round(w*k);px(right?x+w-fw:x,y,fw,h,col);px(right?x+w-fw:x,y,fw,1,'#ffffff55');
-  if(c.temp>0.05){const tw=Math.round(w*Math.min(1,c.temp/S.hp));px(right?x+w-tw:x,y+h+1,tw,2,'#ffe08a');}
+  const mk=Math.max(0,Math.min(1,c.mana/Math.max(1,S.manaMax))),mw=Math.round(w*mk);px(x,y+h+1,w,2,'#1b1236');px(right?x+w-mw:x,y+h+1,mw,2,c.manaFlash>0&&Math.floor(now*12)%2?'#ff6b6b':'#5aa8ff');
+  if(c.temp>0.05){const tw=Math.round(w*Math.min(1,c.temp/S.hp));px(right?x+w-tw:x,y+h+3.5,tw,1.5,'#ffe08a');}
 }
 function draw(){
   ctx.setTransform(SC,0,0,SC,0,0);ctx.imageSmoothingEnabled=false;
@@ -871,7 +879,7 @@ function draw(){
   const hs=hintsOn();let hintTxt=focused?'':'눌러서 주문 입력',ghost='';
   if(hs.rec&&!G.over&&!G.cut&&P.text.trim()===''&&now-P.lastInputT>=S.hintDelay){if(!G.rec||now-G.recT>5){G.rec=makeRec();G.recT=now;}hintTxt='추천: '+G.rec;}
   if(hs.auto&&!G.over)ghost=ghostFor(P.text);
-  drawPage(P,PL,'나의 주문',P.text,'#3b2a5c','접두어 '+countPrefixes(P.text)+' · 오타 '+P.typos,focused&&!G.over,hintTxt,ghost);
+  drawPage(P,PL,'나의 주문',P.text,'#3b2a5c','접두어 '+countPrefixes(P.text)+' · 오타 '+P.typos+(P.text.trim()?' · 마나 '+Math.ceil(spellCost(parseSpell(P.text))||0)+'/'+Math.floor(P.mana):''),focused&&!G.over,hintTxt,ghost);
   drawPage(E,PR,'적의 영창',E.text,'#24406e',E.text?'접두어 '+countPrefixes(E.text):'',E.ai.state==='typing',null);
   ctx.save();if(q>0)ctx.translate(Math.round(rnd(-q,q)),Math.round(rnd(-q,q)));
   for(const r of G.rings){const k=r.t/r.life;ctx.globalAlpha=1-k;circle(r.x,r.y,r.r0+(r.r1-r.r0)*k,r.col,r.w);}
@@ -963,6 +971,7 @@ function fillHelp(){
 <li>틀린 글자를 칠 때마다 주문 효과가 ${S.typoPen}%씩 줄어요(최대 ${S.typoMax}%). 고쳐도 기록돼요.</li>
 <li>오타 없이 치면 ${S.critChance}% 확률로 치명타(${S.critMult}배)가 터져요.</li>
 <li>치는 도중에 맞으면 영창이 끊기고 쓰던 글자가 사라져요.</li></ul>
+<h3>마나</h3><ul><li>주문마다 마나가 들고(접두어 하나당 +${S.c_prefix}), 초당 ${S.manaRegen}씩 차요. 모자라면 엔터를 눌러도 나가지 않고 글자는 그대로 남아요. 체력바 밑 파란 줄이 마나예요.</li></ul>
 <h3>방어</h3><ul>
 <li>${sp('shield')}: 체력과 따로 쌓이는 임시 체력을 얻어요. 피해를 먼저 막아 주고, 시간이 지나면 점점 사라져요. 다 막아 내면 상태 효과도 안 걸리고 영창도 안 끊겨요.</li>
 <li>${sp('reflect')}: 엔터 후 ${S.reflectDur}초 동안 유지돼요. 날아오는 주문과 접두어가 똑같으면 ${S.refExact}%, 등급 구성만 같으면 ${S.refSame}%로 되돌려 보내요. 메테오와 블랙홀까지 전부 반사돼요.</li></ul>
@@ -972,19 +981,20 @@ function fillList(){
   const tiers=TIERS.map((t,i)=>`<p><b style="color:${t.ui}">${t.name}</b> <span style="color:#a89cc4">${t.range} · 보너스 +${S['d'+i]}</span><br><span style="color:${t.ui}">${t.words.join(' · ')}</span></p>`).join('');
   $('listBody').innerHTML=`
 <h3>접두어</h3><p>몇 개든 붙일 수 있어요. 접두어 보너스에 주문마다 정해진 배율이 곱해져요. 같은 접두어를 반복하면 할 때마다 ${S.repeatMul}%로 약해져요.</p>${tiers}
+<p style="color:#a89cc4">마나 비용: 각 주문 이름 옆 숫자 + 접두어 하나당 ${S.c_prefix}</p>
 <h3>공격</h3>
-<p>${sp('fire')} — 데미지 ${S.fireDmg}, 접두어 ×${S.fireMul}. 세지만 느려요.</p>
-<p>${sp('lightning')} — 데미지 ${S.ltDmg}, 접두어 ×${S.ltMul}. 이름이 길어 치기 오래 걸리지만, 순식간에 날아가 세게 맞혀요.</p>
-<p>${sp('ice')} — 데미지 ${S.iceDmg}, 접두어 ×${S.iceMul}. 맞으면 ${S.frostBase}초 동안 책에 성에가 껴요.</p>
-<p>${sp('wind')} — 칼날 ${S.windCount}개 × 데미지 ${S.windDmg}, 접두어 ×${S.windMul}. 시간차로 날아가요.</p>
-<p>${sp('meteor')} — 데미지 ${S.metDmg}, 접두어 ×${S.metMul}. 약하지만 짧아서 빨리 쓸 수 있어요. 상대의 대각선 위에서 ${S.metDelay}초 동안 천천히 떨어져요. 공중 충돌과 블랙홀은 안 통해요.</p>
-<p>${sp('poison')} — 맞을 때 ${S.psnHit} + ${S.psnDur}초 동안 ${S.psnDot}, 접두어 ×${S.psnMul}. 지속 피해로는 영창이 안 끊겨요.</p>
+<p>${sp('fire')} <span style="color:#7fb6ff">[마나 ${S.c_fire}]</span> — 데미지 ${S.fireDmg}, 접두어 ×${S.fireMul}. 세지만 느려요.</p>
+<p>${sp('lightning')} <span style="color:#7fb6ff">[마나 ${S.c_lightning}]</span> — 데미지 ${S.ltDmg}, 접두어 ×${S.ltMul}. 이름이 길어 치기 오래 걸리지만, 순식간에 날아가 세게 맞혀요.</p>
+<p>${sp('ice')} <span style="color:#7fb6ff">[마나 ${S.c_ice}]</span> — 데미지 ${S.iceDmg}, 접두어 ×${S.iceMul}. 맞으면 ${S.frostBase}초 동안 책에 성에가 껴요.</p>
+<p>${sp('wind')} <span style="color:#7fb6ff">[마나 ${S.c_wind}]</span> — 칼날 ${S.windCount}개 × 데미지 ${S.windDmg}, 접두어 ×${S.windMul}. 시간차로 날아가요.</p>
+<p>${sp('meteor')} <span style="color:#7fb6ff">[마나 ${S.c_meteor}]</span> — 데미지 ${S.metDmg}, 접두어 ×${S.metMul}. 약하지만 짧아서 빨리 쓸 수 있어요. 상대의 대각선 위에서 ${S.metDelay}초 동안 천천히 떨어져요. 공중 충돌과 블랙홀은 안 통해요.</p>
+<p>${sp('poison')} <span style="color:#7fb6ff">[마나 ${S.c_poison}]</span> — 맞을 때 ${S.psnHit} + ${S.psnDur}초 동안 ${S.psnDot}, 접두어 ×${S.psnMul}. 지속 피해로는 영창이 안 끊겨요.</p>
 <h3>방해·보조</h3>
-<p>${sp('silence')} — 데미지 없음. 맞으면 ${S.silBase}초 동안 접두어 효과가 사라져요.</p>
-<p>${sp('blackhole')} — 데미지 없음. 공중에서 만나는 적 투사체를 빨아들여요.</p>
-<p>${sp('heal')} — 체력 ${S.healBase} 회복, 접두어 ×${S.healMul}.</p>
-<p>${sp('shield')} — 임시 체력 ${S.shBase}, 접두어 ×${S.shMul}. 초당 ${S.shDecay}씩 사라지고, 겹치면 최대 ${S.shMax}.</p>
-<p>${sp('reflect')} — 접두어가 똑같으면 ${S.refExact}%, 등급 구성이 같으면 ${S.refSame}% 반사.</p>
+<p>${sp('silence')} <span style="color:#7fb6ff">[마나 ${S.c_silence}]</span> — 데미지 없음. 맞으면 ${S.silBase}초 동안 접두어 효과가 사라져요.</p>
+<p>${sp('blackhole')} <span style="color:#7fb6ff">[마나 ${S.c_blackhole}]</span> — 데미지 없음. 공중에서 만나는 적 투사체를 빨아들여요.</p>
+<p>${sp('heal')} <span style="color:#7fb6ff">[마나 ${S.c_heal}]</span> — 체력 ${S.healBase} 회복, 접두어 ×${S.healMul}.</p>
+<p>${sp('shield')} <span style="color:#7fb6ff">[마나 ${S.c_shield}]</span> — 임시 체력 ${S.shBase}, 접두어 ×${S.shMul}. 초당 ${S.shDecay}씩 사라지고, 겹치면 최대 ${S.shMax}.</p>
+<p>${sp('reflect')} <span style="color:#7fb6ff">[마나 ${S.c_reflect}]</span> — 접두어가 똑같으면 ${S.refExact}%, 등급 구성이 같으면 ${S.refSame}% 반사.</p>
 <p class="ex">예) 적이 '원더풀 메가 파이어볼'을 쏘면 → '원더풀 메가 리플렉트'(${S.refExact}%) 또는 '프리미엄 킹 리플렉트'(${S.refSame}%)</p>`;
 }
 function fillSettings(){
