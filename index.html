@@ -808,8 +808,15 @@ function drawProj(f){
       for(let k=0;k<n;k++){const ph=((f.age*1.6+k/n)%1),rr=mr-ph*(mr-2);ctx.globalAlpha=0.3+ph*0.7;circle(x,y,rr,k%2?'#b9a8ff':'#7a5ad0',1);}ctx.globalAlpha=1;
       if(f.crit){ctx.globalAlpha=Math.floor(f.age*5)%2?0.9:0.4;circle(x,y,10.5,'#ff3b4b',1);ctx.globalAlpha=1;}
       disc(x,y,2,'#3a2a6a');px(Math.round(x),Math.round(y),1,1,'#ffffff');break;}
-    case 'blackhole':{const R=r*1.7,n=Math.round(12*R),A=f.age*3,dk=(back)=>{for(let i=0;i<n;i++){const a=i/n*Math.PI*2+A,s=Math.sin(a);if((s<0)!==back)continue;const rr=R+Math.sin(i*1.7)*r*0.17;px(Math.round(x+Math.cos(a)*rr),Math.round(y+s*rr*0.28),1,1,back?(i%3?'#ff9a4a':'#ffd9a0'):(i%3?'#c060ff':'#ffffff'));}};
-      dk(true);disc(x,y,r,'#000000');{const m=Math.max(10,Math.round(r*6));for(let i=0;i<m;i++){const a=i/m*Math.PI*2;px(Math.round(x+Math.cos(a)*(r+0.5)),Math.round(y+Math.sin(a)*(r+0.5)),1,1,'#ffd9a0');}}dk(false);break;}
+    case 'blackhole':{const cr=f.crit,pul=cr&&Math.floor(f.age*5)%2,
+      dk=(back,R,A,cb,cf,T)=>{const n=Math.round(12*R),co=Math.cos(T),si=Math.sin(T);for(let i=0;i<n;i++){const a=i/n*Math.PI*2+A,s=Math.sin(a);if((s<0)!==back)continue;const rr=R+Math.sin(i*1.7)*r*0.17,xx=Math.cos(a)*rr,yy=s*rr*0.28;px(Math.round(x+xx*co-yy*si),Math.round(y+xx*si+yy*co),1,1,back?(i%3?cb[0]:cb[1]):(i%3?cf[0]:cf[1]));}},
+      pr=(rad,c)=>{const m=Math.max(10,Math.round(rad*6));for(let i=0;i<m;i++){const a=i/m*Math.PI*2;px(Math.round(x+Math.cos(a)*rad),Math.round(y+Math.sin(a)*rad),1,1,c);}},
+      NB=['#ff9a4a','#ffd9a0'],NF=['#c060ff','#ffffff'],RB=['#e8203a','#ff9aa0'],RF=['#a0102a','#ffe0e8'];
+      if(cr){ctx.globalAlpha=0.22;disc(x,y,r*1.85,'#9a2a6a');ctx.globalAlpha=1;}
+      dk(true,r*1.7,f.age*3,NB,NF,0);if(cr)dk(true,r*1.87,-f.age*4,RB,RF,-0.5);
+      disc(x,y,r,'#000000');pr(r+0.5,pul?'#ff3b4b':'#ffd9a0');
+      dk(false,r*1.7,f.age*3,NB,NF,0);if(cr)dk(false,r*1.87,-f.age*4,RB,RF,-0.5);
+      if(pul){ctx.globalAlpha=0.5;pr(r+2,'#ff3b4b');ctx.globalAlpha=1;}break;}
   }
 }
 function meteorPos(m){
