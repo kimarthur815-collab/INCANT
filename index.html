@@ -267,12 +267,12 @@ function drawBook(b){
 }
 
 /* ---------- 수치 ---------- */
-const DEF={hp:100,critChance:25,critMult:2,d0:4,d1:7,d2:10,d3:13,d4:16,repeatMul:50,typoPen:10,typoMax:50,
+const DEF={hp:100,critChance:25,critMult:2,d0:3,d1:5,d2:7,d3:9,d4:11,repeatMul:50,typoPen:10,typoMax:50,
  refCPM:300,speedMin:50,speedMax:160,
- fireDmg:10,fireMul:1,fireTime:4.5, ltDmg:4,ltMul:0.5,ltTime:0.8, iceDmg:7,iceMul:0.7,iceTime:3.2,frostBase:2,
- windDmg:3,windMul:0.35,windTime:2.6,windGap:0.25,windCount:3, metDmg:18,metMul:1.2,metDelay:2,
- psnHit:3,psnDot:8,psnMul:0.8,psnDur:4,psnTime:3.2, silBase:3,silTime:3,silPower:8, bhSize:6,bhTime:5,
- healBase:6,healMul:1, shBase:15,shMul:1.5,shDecay:3,shMax:50,
+ fireDmg:7,fireMul:1,fireTime:4.5, ltDmg:3,ltMul:0.5,ltTime:0.8, iceDmg:5,iceMul:0.7,iceTime:3.2,frostBase:2,
+ windDmg:2,windMul:0.35,windTime:2.6,windGap:0.25,windCount:3, metDmg:12,metMul:1.2,metDelay:2,
+ psnHit:2,psnDot:5,psnMul:0.8,psnDur:4,psnTime:3.2, silBase:3,silTime:3,silPower:5, bhSize:6,bhTime:5,
+ healBase:4,healMul:1, shBase:10,shMul:1.5,shDecay:2,shMax:33,
  refExact:100,refSame:80,ref1:40,ref2:10,ref3:0,reflectDur:1.5,clashMul:70,bgmVol:60,sfxVol:80,
  cpm0:120,typo0:10,int0:20,def0:15, cpm1:200,typo1:5,int1:70,def1:50, cpm2:300,typo2:3,int2:90,def2:80};
 const LABELS=[
@@ -298,8 +298,9 @@ const LABELS=[
  ['난이도: 어려움',[['cpm2','AI 타수'],['typo2','AI 오타율 %'],['int2','끊기 시도 %'],['def2','방어 시도 %']]]
 ];
 let S=Object.assign({},DEF);
-try{const s=JSON.parse(localStorage.getItem('incant-settings')||'{}');for(const k in DEF)if(typeof s[k]==='number'&&isFinite(s[k]))S[k]=s[k];}catch(e){}
-function saveS(){try{localStorage.setItem('incant-settings',JSON.stringify(S));}catch(e){}}
+const SET_VER=2;
+try{if(+localStorage.getItem('incant-settings-v')===SET_VER){const s=JSON.parse(localStorage.getItem('incant-settings')||'{}');for(const k in DEF)if(typeof s[k]==='number'&&isFinite(s[k]))S[k]=s[k];}}catch(e){}
+function saveS(){try{localStorage.setItem('incant-settings',JSON.stringify(S));localStorage.setItem('incant-settings-v',SET_VER);}catch(e){}}
 
 /* ---------- 한글 ---------- */
 const CHO='ㄱㄲㄴㄷㄸㄹㅁㅂㅃㅅㅆㅇㅈㅉㅊㅋㅌㅍㅎ',JUNG='ㅏㅐㅑㅒㅓㅔㅕㅖㅗㅘㅙㅚㅛㅜㅝㅞㅟㅠㅡㅢㅣ';
@@ -469,12 +470,12 @@ function castFrom(c,text,typos,cpm){
   switch(r.kind){
     case 'fire':launch({type:'fire',power:(S.fireDmg+bonus*S.fireMul)*mul,time:speedTime(S.fireTime,cpm)});break;
     case 'lightning':launch({type:'lightning',power:(S.ltDmg+bonus*S.ltMul)*mul,time:speedTime(S.ltTime,cpm)});break;
-    case 'ice':launch({type:'ice',power:(S.iceDmg+bonus*S.iceMul)*mul,frost:(S.frostBase+bonus/10)*mul,time:speedTime(S.iceTime,cpm)});break;
+    case 'ice':launch({type:'ice',power:(S.iceDmg+bonus*S.iceMul)*mul,frost:(S.frostBase+bonus/7)*mul,time:speedTime(S.iceTime,cpm)});break;
     case 'wind':{const o={type:'wind',power:(S.windDmg+bonus*S.windMul)*mul,time:speedTime(S.windTime,cpm)};for(let i=0;i<Math.max(1,Math.round(S.windCount));i++)G.pend.push({t:i*S.windGap,fn:()=>{if(!G.over){launch(Object.assign({},o,{x:c.front,px:c.front}));elemBurst('wind',c.front,LANE,0.6);}}});break;}
     case 'meteor':{const t=other(c);G.mets.push({owner:c.side,target:t.side,t:S.metDelay,total:S.metDelay,power:(S.metDmg+bonus*S.metMul)*mul,words,crit});break;}
     case 'poison':launch({type:'poison',power:S.psnHit*mul,dot:(S.psnDot+bonus*S.psnMul)*mul,time:speedTime(S.psnTime,cpm)});break;
-    case 'silence':launch({type:'silence',power:S.silPower,sil:(S.silBase+bonus/10)*mul,time:speedTime(S.silTime,cpm)});break;
-    case 'blackhole':launch({type:'blackhole',power:0,size:Math.min(22,(S.bhSize+bonus/4)*mul),time:speedTime(S.bhTime,cpm)});break;
+    case 'silence':launch({type:'silence',power:S.silPower,sil:(S.silBase+bonus/7)*mul,time:speedTime(S.silTime,cpm)});break;
+    case 'blackhole':launch({type:'blackhole',power:0,size:Math.min(22,(S.bhSize+bonus/3)*mul),time:speedTime(S.bhTime,cpm)});break;
     case 'heal':{const a=Math.min(S.hp-c.hp,(S.healBase+bonus*S.healMul)*mul);c.hp+=a;float(c.foot,HY,(crit?'치명타! ':'')+'+'+Math.round(a),'#8af0a0',true);elemBurst('heal',c.foot,FLOOR-40,1.6);break;}
     case 'shield':{const a=(S.shBase+bonus*S.shMul)*mul,b=c.temp;c.temp=Math.min(S.shMax,c.temp+a);float(c.foot,HY,(crit?'치명타! ':'')+'보호막 +'+Math.round(c.temp-b),'#ffe08a',true);elemBurst('shield',c.foot,FLOOR-40,1.6);break;}
     case 'reflect':c.reflect={until:now+S.reflectDur,words,dur:S.reflectDur};float(c.foot,HY,'리플렉트 ×'+words.length,'#d6b8ff');break;
