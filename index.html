@@ -38,12 +38,18 @@ body{min-height:100vh;min-height:100dvh;display:flex;justify-content:center;alig
 #wrap.inbattle #snd{display:none;}
 #wrap.inbattle #fs{top:.6cqh;right:auto;left:calc(50% + 2.6em);padding:.05em .6em;border-width:1px;font-size:clamp(9px,1.4cqw,14px);}
 #help,#list,#settings{z-index:12;}
+#wrap.inresult #exit,#wrap.inresult #fs{display:none!important;}
+#result>:first-child{margin-top:auto;}
+#result>:last-child{margin-bottom:auto;}
+.row{flex-wrap:wrap;}
+.vsel{flex-wrap:wrap;}
+.btn.mini{white-space:nowrap;}
 #diff{flex-direction:column;align-items:center;justify-content:center;gap:1.4cqh;background:#0d0b1acc;}
 #diff h2{font-family:'Galmuri11B',monospace;color:#ffe08a;font-weight:normal;font-size:clamp(20px,5cqw,48px);margin:0 0 1cqh;}
 #diff .btn small{display:block;font-size:.62em;color:#c9b8ff;margin-top:.2em;}
 #diff .btn{min-width:15em;}
 #diff .btn.sel{border-color:#ffe08a;background:#3d3270;}
-#result{overflow:auto;flex-direction:column;align-items:center;justify-content:center;gap:2cqh;background:#0d0b1aa8;}
+#result{overflow:auto;flex-direction:column;align-items:center;justify-content:flex-start;padding:2cqh 0;gap:2cqh;background:#0d0b1aa8;}
 #rtitle{font-family:'Galmuri11B',monospace;font-size:clamp(30px,10cqw,110px);margin:0;}
 #rstats{display:grid;grid-template-columns:auto auto auto;gap:.15em 1.4em;font-size:clamp(11px,1.8cqw,18px);color:#e6dcff;margin:0 0 1cqh;}
 #rstats .rh{color:#9a87b8;}
@@ -486,7 +492,7 @@ function bookBurst(x,y,tier){
 
 /* ---------- 주문 처리 ---------- */
 const DIST=295;
-function speedTime(base,cpm){return Math.min(base*S.speedMax/100,Math.max(base*S.speedMin/100,base*S.refCPM/Math.max(1,cpm)));}
+function speedTime(base,cpm){base=Math.max(0.05,base||0.05);return Math.min(base*S.speedMax/100,Math.max(base*S.speedMin/100,base*S.refCPM/Math.max(1,cpm)));}
 function beginCast(c,text,typos,cpm){
   const r=parseSpell(text);
   if(!r||!r.kind){castFrom(c,text,typos,cpm);return;}
@@ -515,7 +521,7 @@ function castFrom(c,text,typos,cpm){
     case 'poison':launch({type:'poison',power:S.psnHit*mul,dot:(S.psnDot+bonus*S.psnMul)*mul,time:speedTime(S.psnTime,cpm)});break;
     case 'silence':launch({type:'silence',power:S.silPower,sil:(S.silBase+bonus/7)*mul,time:speedTime(S.silTime,cpm)});break;
     case 'blackhole':launch({type:'blackhole',power:0,size:Math.min(22,(S.bhSize+bonus/3)*mul),time:speedTime(S.bhTime,cpm)});break;
-    case 'heal':{const a=Math.min(S.hp-c.hp,(S.healBase+bonus*S.healMul)*mul);c.hp+=a;float(c.foot,HY,(crit?'치명타! ':'')+'+'+Math.round(a),'#8af0a0',true);elemBurst('heal',c.foot,FLOOR-40,1.6);break;}
+    case 'heal':{const a=Math.min(S.hp-c.hp,(S.healBase+bonus*S.healMul)*mul);c.hp+=a;float(c.foot,HY,a<0.5?'체력 가득':(crit?'치명타! ':'')+'+'+Math.round(a),'#8af0a0',true);elemBurst('heal',c.foot,FLOOR-40,1.6);break;}
     case 'shield':{const a=(S.shBase+bonus*S.shMul)*mul,b=c.temp;c.temp=Math.min(S.shMax,c.temp+a);float(c.foot,HY,(crit?'치명타! ':'')+'보호막 +'+Math.round(c.temp-b),'#ffe08a',true);elemBurst('shield',c.foot,FLOOR-40,1.6);break;}
     case 'reflect':c.reflect={until:now+S.reflectDur,words,dur:S.reflectDur};float(c.foot,HY,'리플렉트 ×'+words.length,'#d6b8ff');break;
   }
@@ -535,7 +541,7 @@ function arrive(fb,t){
   if(tryReflect(t,fb.words)){fb.dir*=-1;fb.owner=t.side;fb.x=fb.px=t.front;fb.age=0;return;}
   fb.alive=false;
   if(fb.type==='blackhole'){elemBurst('blackhole',t.front,LANE,1);return;}
-  applyHit(t,{dmg:fb.power,frost:fb.frost,sil:fb.sil,dot:fb.dot,crit:fb.crit,type:fb.type});
+  applyHit(t,{dmg:fb.type==='silence'?0:fb.power,frost:fb.frost,sil:fb.sil,dot:fb.dot,crit:fb.crit,type:fb.type});
 }
 function hitFx(t,type,dmg){
   const x=type==='meteor'?t.foot:t.front,y=type==='meteor'?FLOOR-20:LANE,k=Math.min(2.2,0.8+dmg/20);
@@ -570,7 +576,7 @@ function checkDeath(t){
 }
 
 /* ---------- AI ---------- */
-const NEAR=['파','퍼','슈','울','엘','리','쉴','홀','이','어','볼','라','레','스','트','렉','플','드','엠','페','럴','강','메','킹'];
+const NEAR=['파','퍼','슈','울','엘','리','쉴','홀','이','어','볼','라','레','스','트','렉','플','드','엠','페','럴','강','메','캉'].filter(w=>!WORDS.includes(w));
 function randPrefixes(n){const d=DIFF[diffIdx],pool=TIERS.slice(d.minTier,d.maxTier+1).flatMap(t=>t.words);let s='';for(let i=0;i<n;i++)s+=pick(pool)+' ';return s;}
 function copyWords(words){
   if(Math.random()*100<DIFF[diffIdx].copy)return words.map(w=>w+' ').join('');
@@ -891,13 +897,14 @@ function draw(){
 const $=id=>document.getElementById(id);
 let resultShown=false;
 function show(id,on){$(id).classList.toggle('on',on);}
+function stopVoice(){try{if(VO.ok)speechSynthesis.cancel();}catch(e){}}
 function startBattle(practice){
-  newBattle(practice===true);mode='battle';resultShown=false;wrap.classList.add('inbattle');
-  show('lobby',false);show('result',false);show('diff',false);
+  stopVoice();newBattle(practice===true);mode='battle';resultShown=false;wrap.classList.add('inbattle');
+  wrap.classList.remove('inresult');show('lobby',false);show('result',false);show('diff',false);
   tf.style.display='block';exitBtn.style.display='block';
   typer.focus();music('battle',true);
 }
-function toLobby(){wrap.classList.remove('inbattle');mode='lobby';G=null;tf.style.display='none';exitBtn.style.display='none';typer.blur();show('result',false);show('diff',false);show('lobby',true);music('lobby');}
+function toLobby(){stopVoice();wrap.classList.remove('inbattle','inresult');mode='lobby';G=null;tf.style.display='none';exitBtn.style.display='none';typer.blur();show('result',false);show('diff',false);show('lobby',true);music('lobby');}
 function showResult(){
   resultShown=true;const win=G.E.hp<=0,st=G.st;
   $('rtitle').textContent=win?'승리!':'패배…';$('rtitle').style.color=win?'#ffe08a':'#b9a7d6';
@@ -910,9 +917,10 @@ function showResult(){
   for(const k of ['cpm','acc','maxHit','crits','reflects'])if(st.casts>0&&(b[k]==null||cur[k]>b[k])){nb[k]=cur[k];if(cur[k]>0)isNew[k]=1;}
   best[diffIdx]=nb;try{localStorage.setItem('incant-best',JSON.stringify(best));}catch(e){}
   const fmt=t=>t==null?'-':Math.floor(t/60)+':'+String(Math.floor(t%60)).padStart(2,'0');
-  const rows=[['전투 시간',fmt(time),fmt(nb.time),'time'],['평균 타수',cpm+'타',(nb.cpm??'-')+'타','cpm'],['정확도',acc+'%',(nb.acc??'-')+'%','acc'],['가장 큰 한 방',cur.maxHit,nb.maxHit??'-','maxHit'],['치명타',st.crits+'번',(nb.crits??'-')+'번','crits'],['반사 성공',st.reflects+'번',(nb.reflects??'-')+'번','reflects'],['영창 끊김',st.interrupted+'번','','']];
+  const u=(v,s)=>v==null?'-':v+s;
+  const rows=[['전투 시간',fmt(time),fmt(nb.time),'time'],['평균 타수',u(st.casts?cpm:null,'타'),u(nb.cpm,'타'),'cpm'],['정확도',u(st.casts?acc:null,'%'),u(nb.acc,'%'),'acc'],['가장 큰 한 방',cur.maxHit,u(nb.maxHit,''),'maxHit'],['치명타',st.crits+'번',u(nb.crits,'번'),'crits'],['반사 성공',st.reflects+'번',u(nb.reflects,'번'),'reflects'],['영창 끊김',st.interrupted+'번','','']];
   $('rstats').innerHTML='<div class="rh"></div><div class="rh">이번 판</div><div class="rh">최고 기록</div>'+rows.map(r=>`<div>${r[0]}</div><div>${r[1]}${isNew[r[3]]?' <span class="nw">신기록!</span>':''}</div><div class="bst">${r[2]}</div>`).join('');
-  show('result',true);music(win?'win':'lose',true);
+  wrap.classList.add('inresult');show('result',true);music(win?'win':'lose',true);
 }
 
 $('bStart').onclick=()=>{show('lobby',false);show('diff',true);document.querySelectorAll('[data-diff]').forEach(b=>b.classList.toggle('sel',+b.dataset.diff===diffIdx));};
