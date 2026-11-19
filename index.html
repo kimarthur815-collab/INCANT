@@ -797,7 +797,7 @@ function drawProj(f){
       const bx=x+Math.cos(a)*R*0.7,by=y+Math.sin(a)*R*0.7;px(Math.round(bx+Math.cos(a+1)*1.5),Math.round(by+Math.sin(a+1)*1.5),1,1,bc);px(Math.round(bx+Math.cos(a-1)*1.5),Math.round(by+Math.sin(a-1)*1.5),1,1,bc);}
       disc(x,y,cr?1.4:1.2,'#ffffff');break;}
     case 'wind':{const a0=f.age*18*d;
-      for(let k=0;k<3;k++)for(let q=0;q<7;q++){const a=a0+k*Math.PI*2/3+q*0.22*d,rr=1+q*0.9;px(Math.round(x+Math.cos(a)*rr),Math.round(y+Math.sin(a)*rr),1,1,q<2?'#ffffff':q<5?'#8af0cf':'#1f9a78');}
+      for(let k=0;k<3;k++)for(let q=0;q<8;q++){const a=a0+k*Math.PI*2/3+q*0.22*d,rr=1+q*0.95,c=q<2?'#ffffff':q<5?'#8af0cf':'#1f9a78',X=Math.round(x+Math.cos(a)*rr),Yy=Math.round(y+Math.sin(a)*rr);px(X,Yy,q<6?2:1,q<6?2:1,c);}
       px(Math.round(x),Math.round(y),1,1,'#ffffff');break;}
     case 'poison':disc(x,y,4,'#6fb82a');disc(x,y,2.5,'#8fd63a');px(x-1,y-2,1,1,'#b04fd0');px(x+1,y+1,1,1,'#b04fd0');px(x,y-3,1,1,'#ffffff');break;
     case 'silence':circle(x,y,4,'#9a8ad0',1);circle(x,y,2.5,'#5a4a8a',1);px(x,y,1,1,'#ffffff');break;
