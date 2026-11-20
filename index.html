@@ -144,9 +144,9 @@ function note(t,midi,dur,wave,vol,dest){
   g.gain.setValueAtTime(vol*0.6,t+Math.max(0.01,dur-0.03));g.gain.linearRampToValueAtTime(0,t+dur);
   o.connect(g);g.connect(dest);o.start(t);o.stop(t+dur+0.02);
 }
-function noiseHit(t,dur,vol,type,f0,f1,dest){
+function noiseHit(t,dur,vol,type,f0,f1,dest,q){
   const c=AU.ctx,s=c.createBufferSource(),f=c.createBiquadFilter(),g=c.createGain();
-  s.buffer=AU.noise;s.loop=true;f.type=type||'lowpass';f.frequency.setValueAtTime(f0||2000,t);if(f1)f.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+dur);
+  s.buffer=AU.noise;s.loop=true;f.type=type||'lowpass';if(q)f.Q.value=q;f.frequency.setValueAtTime(f0||2000,t);if(f1)f.frequency.exponentialRampToValueAtTime(Math.max(20,f1),t+dur);
   g.gain.setValueAtTime(vol,t);g.gain.exponentialRampToValueAtTime(0.001,t+dur);
   s.connect(f);f.connect(g);g.connect(dest);s.start(t,Math.random()*0.5);s.stop(t+dur+0.02);
 }
@@ -259,6 +259,19 @@ function sfx(name,a,b){
     case 'absorb':sweep(t,420,70,0.35,'sine',0.35,d);break;
     case 'boom':noiseHit(t,0.7,0.9,'lowpass',700,60,d);sweep(t,90,28,0.7,'sine',0.9,d);break;
     case 'fizzle':sweep(t,160,90,0.18,'square',0.1,d);break;
+    case 'hit_fire':case 'hit_lightning':case 'hit_ice':case 'hit_wind':case 'hit_meteor':case 'hit_poison':case 'hit_silence':case 'hit_blackhole':{
+      const k=Math.min(1.15,0.75+(a||0)/40),R=(x,y)=>x+Math.random()*(y-x);
+      switch(name){
+        case 'hit_fire':noiseHit(t,0.45,0.5*k,'bandpass',900,300,d,1.5);sweep(t,110,45,0.2,'sine',0.6*k,d);for(let i=0;i<7;i++)noiseHit(t+R(0.04,0.35),0.025,0.35*k,'highpass',3000+R(0,3000),0,d);break;
+        case 'hit_lightning':noiseHit(t,0.07,0.8*k,'highpass',3000,0,d);noiseHit(t+0.03,0.45,0.6*k,'lowpass',700,70,d);sweep(t+0.02,200,45,0.35,'sine',0.6*k,d);break;
+        case 'hit_ice':noiseHit(t,0.06,0.7*k,'highpass',2500,0,d);note(t,88,0.12,'triangle',0.3*k,d);note(t+0.02,91,0.12,'triangle',0.25*k,d);for(let i=0;i<5;i++)note(t+0.06+i*R(0.03,0.06),Math.round(R(98,110)),0.06,'sine',0.18*k,d);break;
+        case 'hit_wind':noiseHit(t,0.28,0.6*k,'bandpass',600,3800,d,3);noiseHit(t+0.25,0.04,0.4*k,'highpass',5000,0,d);break;
+        case 'hit_meteor':[0,0.1,0.23].forEach((o,i)=>{noiseHit(t+o,0.4,0.85-i*0.15,'lowpass',1400-i*300,80,d);sweep(t+o,130-i*25,35,0.3,'sine',0.7,d);});break;
+        case 'hit_poison':sweep(t,120,60,0.1,'sine',0.5*k,d);for(let i=0;i<5;i++)sweep(t+0.03+i*R(0.05,0.09),R(350,450),R(800,1000),0.04,'sine',0.28*k,d);break;
+        case 'hit_silence':note(t,84,0.3,'p25',0.16,d);note(t+0.12,77,0.4,'p25',0.14,d);sweep(t,140,60,0.12,'sine',0.35,d);break;
+        case 'hit_blackhole':sweep(t,600,60,0.35,'sine',0.35,d);noiseHit(t+0.33,0.3,0.7,'lowpass',1500,100,d);sweep(t+0.33,120,40,0.2,'sine',0.6,d);break;
+      }
+      if(b)sweep(t+0.03,1600,700,0.12,'square',0.15,d);break;}
     case 'reflect_ok':sweep(t,880,1760,0.12,'p25',0.15,d);note(t+0.08,100,0.12,'p25',0.1,d);break;
   }
 }
@@ -548,7 +561,7 @@ function tryReflect(t,words){
 function arrive(fb,t){
   if(tryReflect(t,fb.words)){fb.dir*=-1;fb.owner=t.side;fb.x=fb.px=t.front;fb.age=0;return;}
   fb.alive=false;
-  if(fb.type==='blackhole'){bhCollapse(t.front,LANE,fb.size||8,fb.crit);return;}
+  if(fb.type==='blackhole'){bhCollapse(t.front,LANE,fb.size||8,fb.crit);sfx('hit_blackhole',0,fb.crit);return;}
   applyHit(t,{dmg:fb.type==='silence'?0:fb.power,frost:fb.frost,sil:fb.sil,dot:fb.dot,crit:fb.crit,type:fb.type});
 }
 const PAL={fire:{f:['#fff3b0','#ffb030','#ff5a1f'],s:['#ff5a1f','#5a4a5a','#3a3040'],sp:['#ff5a1f','#ffb030','#fff3b0']},red:{f:['#ffe0e8','#ff5a6a','#c01430'],s:['#c01430','#5a2a3a','#3a2030'],sp:['#ff3b4b','#ff9aa0','#ffe0e8']}};
@@ -598,6 +611,13 @@ const HITS={
     for(let i=0;i<6;i++)part({kind:'dots',x:hx+rnd(-12,12),y:hy+rnd(-8,8),vx:rnd(-6,6),vy:rnd(-8,-3),life:rnd(.6,.9),col:pick(cr?['#ff9aa0','#e6e0ff']:['#e6e0ff','#9a8ad0']),t:-rnd(.2,.4)});
     for(let i=0;i<8;i++){const a=rnd(0,Math.PI*2),v=rnd(15,35);part({kind:'shard',x,y,vx:Math.cos(a)*v,vy:Math.sin(a)*v,life:0.35,col:pick(['#e6e0ff','#9a8ad0'])});}}
 };
+const CLP={fire:['#fff3b0','#ffb030','#ff5a1f'],lightning:['#ffffff','#fff6a0','#ffd23f'],ice:['#ffffff','#bff4ff','#5fc8f0'],wind:['#ffffff','#c8fff0','#5fe0b8'],poison:['#d8ff9a','#8fd63a','#6a3a8a'],silence:['#e6e0ff','#b9a8ff','#7a5ad0'],meteor:['#fff3b0','#ff9a4a','#c0401a']};
+function clashBoom(x,a,b){const m=1.6;
+  part({kind:'puff',x,y:LANE,r0:2*m,r1:5*m,life:0.12,cs:['#ffffff','#ffffff','#ffffff'],c1:0.9,c2:0.95});
+  for(const p of [a,b]){const cs=p.crit?PAL.red.f:(CLP[p.type]||CLP.fire),s=-p.dir;
+    for(let i=0;i<5;i++)part({kind:'puff',x:x+s*rnd(1,5)*m,y:LANE+rnd(-4,4)*m,vx:s*rnd(8,18)*m,vy:rnd(-8,4)*m,r0:2*m,r1:rnd(3.5,5)*m,life:rnd(.4,.6),cs,c1:0.2,c2:0.55});}
+  for(let i=0;i<4;i++)part({kind:'puff',x:x+rnd(-4,4)*m,y:LANE-rnd(2,5)*m,vy:rnd(-14,-8)*m,r0:1.5*m,r1:rnd(3,4)*m,life:rnd(.7,1),cs:['#c8c8d8','#8a8a9a','#5a5a6a'],c1:0.2,c2:0.5,soft:0.8,t:-rnd(.15,.25)});
+}
 function bhCollapse(x,y,r,cr){elemBurst('blackhole',x,y,Math.max(0.8,r/9));
   part({kind:'puff',x,y,r0:2,r1:r*0.8,life:0.12,cs:['#ffffff','#ffffff','#e0c8ff'],c1:0.9,c2:0.95,t:-0.18});
   ring(x,y,r*0.5,r*2.2,cr?'#ff3b4b':'#c060ff',0.4,2,{d:0.18});ring(x,y,r*0.3,r*1.6,cr?'#ff9aa0':'#ffd9a0',0.35,1,{d:0.2});
@@ -618,7 +638,7 @@ function applyHit(t,h){
   hitFx(t,h.type,dmg,h.crit);
   if(ab>0.05)float(t.foot,HY+20,'보호막 -'+Math.round(ab),'#ffe08a');
   if(blocked){float(t.foot,HY+10,'막음!','#ffe08a',true);sfx('block');return;}
-  if(h.type==='meteor')sfx('boom');else sfx('hit',dmg,h.crit);
+  sfx(HITS[h.type]?'hit_'+h.type:'hit',dmg,h.crit);
   t.hp=Math.max(0,t.hp-rest);if(G.practice&&t.side===1)t.hp=S.hp;
   t.flash=0.14;t.shake=0.3;
   if(rest>0||h.type!=='silence'){const s=Math.round(rest);float(t.foot,HY+10,(h.crit?'치명타! ':'')+'-'+s,h.crit?'#ffd23f':'#ff6b6b',true);}
@@ -736,7 +756,7 @@ function update(dt){
       else{const o=a.type==='blackhole'?b:a;o.alive=false;elemBurst('blackhole',o.x,LANE,1.3);float(o.x,LANE-16,'흡수','#e0c8ff');sfx('absorb');}
       continue;
     }
-    burst(mx,LANE,['#ffd27a','#ffffff',SPELLS[a.type].fx[1],SPELLS[b.type].fx[1]],26,60);ring(mx,LANE,2,20,'#ffe9b0',0.4,1);quake(1);sfx('clash');
+    clashBoom(mx,a,b);quake(1);sfx('clash');
     if(Math.abs(a.power-b.power)<0.01){a.alive=b.alive=false;float(mx,LANE-14,'상쇄','#ffe9b0');}
     else{const w=a.power>b.power?a:b,l=w===a?b:a;w.power-=l.power*S.clashMul/100;l.alive=false;w.crit=false;float(mx,LANE-14,'상쇄','#ffe9b0');}
   }
