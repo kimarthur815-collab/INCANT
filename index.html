@@ -283,7 +283,7 @@ function drawBook(b){
 }
 
 /* ---------- 수치 ---------- */
-const DEF={hp:135,critChance:25,critMult:2,d0:3,d1:5,d2:7,d3:9,d4:11,repeatMul:50,typoPen:10,typoMax:50,
+const DEF={hp:135,sdTime:180,sdHeal:50,critChance:25,critMult:2,d0:3,d1:5,d2:7,d3:9,d4:11,repeatMul:50,typoPen:10,typoMax:50,
  refCPM:300,speedMin:50,speedMax:160,
  fireDmg:7,fireMul:1,fireTime:4.5, ltDmg:11,ltMul:0.9,ltTime:0.8, iceDmg:5,iceMul:0.7,iceTime:3.2,frostBase:2,
  windDmg:2,windMul:0.35,windTime:2.6,windGap:0.25,windCount:3, metDmg:4,metMul:0.6,metDelay:3.5,
@@ -308,6 +308,7 @@ const LABELS=[
  ['홀리 쉴드 (임시 체력)',[['shBase','기본 양'],['shMul','접두어 배율'],['shDecay','초당 줄어드는 양'],['shMax','최대 양']]],
  ['리플렉트',[['refExact','접두어가 똑같을 때 %'],['refSame','등급 구성이 같을 때 %'],['ref1','등급 한 칸 다를 때 %'],['ref2','두 칸 다를 때 %'],['ref3','세 칸 이상 다를 때 %'],['reflectDur','유지 시간 (초)']]],
  ['공중 충돌',[['clashMul','이긴 쪽이 깎이는 양 (진 쪽 위력의 %)']]],
+ ['서든데스',[['sdTime','시작 시간 (초)'],['sdHeal','힐·보호막 효과 %']]],
  ['마나',[['manaMax','최대 마나'],['manaRegen','초당 회복'],['c_prefix','접두어 하나당 추가 비용'],['c_fire','파이어볼'],['c_lightning','썬더스트라이크'],['c_ice','아이스 스피어'],['c_wind','윈드 커터'],['c_meteor','메테오'],['c_poison','포이즌'],['c_silence','사일런스'],['c_blackhole','블랙홀'],['c_heal','힐'],['c_shield','홀리 쉴드'],['c_reflect','리플렉트']]],
  ['도움',[['hintDelay','추천 주문이 나오기까지 (초)']]],
  ['소리',[['bgmVol','배경음악 음량 %'],['sfxVol','효과음 음량 %'],['voiceVol','목소리 음량 % (0이면 끔)']]],
@@ -528,8 +529,8 @@ function castFrom(c,text,typos,cpm){
     case 'poison':launch({type:'poison',power:S.psnHit*mul,dot:(S.psnDot+bonus*S.psnMul)*mul,time:speedTime(S.psnTime,cpm)});break;
     case 'silence':launch({type:'silence',power:S.silPower,sil:(S.silBase+bonus/7)*mul,time:speedTime(S.silTime,cpm)});break;
     case 'blackhole':launch({type:'blackhole',power:0,size:Math.min(22,(S.bhSize+bonus/3)*mul),time:speedTime(S.bhTime,cpm)});break;
-    case 'heal':{const a=Math.min(S.hp-c.hp,(S.healBase+bonus*S.healMul)*mul);c.hp+=a;float(c.foot,HY,a<0.5?'체력 가득':(crit?'치명타! ':'')+'+'+Math.round(a),crit&&a>=0.5?'#ff9aa0':'#8af0a0',true);c.heal={t:0,crit};break;}
-    case 'shield':{const a=(S.shBase+bonus*S.shMul)*mul,b=c.temp;c.temp=Math.min(S.shMax,c.temp+a);c.shCrit=crit;float(c.foot,HY,(crit?'치명타! ':'')+'보호막 +'+Math.round(c.temp-b),'#ffe08a',true);elemBurst('shield',c.foot,FLOOR-40,1.6);break;}
+    case 'heal':{const a=Math.min(S.hp-c.hp,(S.healBase+bonus*S.healMul)*mul*sdF());c.hp+=a;float(c.foot,HY,a<0.5?'체력 가득':(crit?'치명타! ':'')+'+'+Math.round(a),crit&&a>=0.5?'#ff9aa0':'#8af0a0',true);c.heal={t:0,crit};break;}
+    case 'shield':{const a=(S.shBase+bonus*S.shMul)*mul*sdF(),b=c.temp;c.temp=Math.min(S.shMax,c.temp+a);c.shCrit=crit;float(c.foot,HY,(crit?'치명타! ':'')+'보호막 +'+Math.round(c.temp-b),'#ffe08a',true);elemBurst('shield',c.foot,FLOOR-40,1.6);break;}
     case 'reflect':c.reflect={until:now+S.reflectDur,words,dur:S.reflectDur};float(c.foot,HY,words.length?'리플렉트 ×'+words.length:'리플렉트','#d6b8ff');break;
   }
 }
@@ -699,7 +700,8 @@ function radOf(f){
 }
 function update(dt){
   if(mode!=='battle'||!G)return;
-  G.banner=Math.max(0,G.banner-dt);G.quake=Math.max(0,G.quake-dt*6);
+  G.banner=Math.max(0,G.banner-dt);G.quake=Math.max(0,G.quake-dt*6);G.sdBanner=Math.max(0,(G.sdBanner||0)-dt);
+  if(!G.practice&&!G.over&&!G.sd&&now-G.st.t0>=S.sdTime){G.sd=true;G.sdBanner=1.8;screenFlash('#ff3b4b',0.3);quake(1.5);sfx('interrupt');}
   if(G.flash){G.flash.t+=dt;if(G.flash.t>=G.flash.life)G.flash=null;}
   aiUpdate(dt);
   for(const p of G.pend)p.t-=dt;
@@ -808,6 +810,7 @@ function drawChar(c,idle,read,wIdle,wRead){
   if(c.heal){ctx.globalAlpha=0.35*healK(c.heal.t)*(c.dead?0:1);ctx.drawImage(tintOf(img,'#8af0a0'),x,y);}
   ctx.globalAlpha=1;
 }
+function sdF(){return G&&G.sd?S.sdHeal/100:1;}
 function healK(t){return t<0.25?t/0.25:t<1.1?1:Math.max(0,1-(t-1.1)/0.5);}
 function drawHeal(c,front){
   const h=c.heal;if(!h)return;const t=h.t,k=healK(t),x=Math.round(c.foot);if(k<=0)return;
@@ -1027,9 +1030,10 @@ function draw(){
   ctx.restore();
   hpBar(P,8,'플레이어','#e0405a',false);
   if(G.practice){const st=G.st,cpm=st.typeTime>0?Math.round(st.ks/(st.typeTime/60)):0;text('허수아비',LW-8,6.5,6,'#ffffff','right',true,'#1b1236');text('누적 '+Math.round(st.dealt)+' · 최대 '+Math.round(st.maxHit)+' · 평균 '+cpm+'타',LW-8,14,5.5,'#ffe08a','right',false,'#1b1236');text('연습 모드',LW/2,16.5,5,'#9a87b8','center');}
-  else{hpBar(E,LW-158,'파란 마법사','#4a7ce0',true);text(DIFF[diffIdx].name,LW/2,16.5,5,'#9a87b8','center');}
+  else{hpBar(E,LW-158,'파란 마법사','#4a7ce0',true);text(G.sd?'서든데스 · 회복 '+S.sdHeal+'%':DIFF[diffIdx].name,LW/2,16.5,5,G.sd?(Math.floor(now*2)%2?'#ff5a6a':'#ff9aa0'):'#9a87b8','center');}
   if(G.flash){ctx.globalAlpha=0.35*(1-G.flash.t/G.flash.life);px(0,0,LW,LH,G.flash.col);ctx.globalAlpha=1;}
   if(G.banner>0){ctx.globalAlpha=Math.min(1,G.banner*3);text('시작!',LW/2,62,16,'#ffe08a','center',true,'#1b1236');ctx.globalAlpha=1;}
+  if(G.sdBanner>0){ctx.globalAlpha=Math.min(1,G.sdBanner*3);text('서든데스!',LW/2,56,15,'#ff3b4b','center',true,'#1b1236');text('이제부터 힐·보호막이 '+S.sdHeal+'%만 차요',LW/2,72,6.5,'#ffe0e8','center',true,'#1b1236');ctx.globalAlpha=1;}
 }
 
 /* ---------- 화면 전환 ---------- */
@@ -1093,7 +1097,7 @@ function fillHelp(){
 <li>엔터를 누르면 시전돼요. 형식이 틀리면 불발이에요.</li>
 <li>책 왼쪽 장에 내 주문, 오른쪽 장에 적의 영창이 적혀요.</li>
 <li>쉬움과 연습 모드에서는 치는 중에 나머지 글자가 흐리게 보이고, ${S.hintDelay}초 동안 아무것도 안 치면 추천 주문이 떠요. 보통은 흐린 글자만, 어려움은 도움이 없어요.</li>
-<li>접두어를 다 칠 때마다 마법사가 그 단어를 외치고(상대 목소리는 작게), 시전하면 잠깐 게임이 멈춘 채 접두어까지 포함한 주문 전체를 한 번에 외쳐요. 목소리는 수치 조절 화면에서 골라요.</li></ul>
+<li>접두어를 다 칠 때마다 마법사가 그 단어를 외치고(상대 목소리는 작게), 시전하면 접두어까지 포함한 주문 전체를 한 번에 외쳐요. 주문을 외치는 동안에는 접두어 목소리가 끼어들지 않고, 새 주문을 외치면 이전 외침은 끊겨요. 목소리는 수치 조절 화면에서 골라요.</li></ul>
 <h3>세기와 속도</h3><ul>
 <li>접두어를 많이 붙일수록 강해요. 개수 제한은 없어요.</li>
 <li>타수(자모 수)가 많은 접두어일수록 등급이 높고 더 강해요. 다 치면 책 속 단어가 등급 색으로 빛나요.</li>
@@ -1106,7 +1110,8 @@ function fillHelp(){
 <h3>방어</h3><ul>
 <li>${sp('shield')}: 체력과 따로 쌓이는 임시 체력을 얻어요. 피해를 먼저 막아 주고, 시간이 지나면 점점 사라져요. 다 막아 내면 상태 효과도 안 걸리고 영창도 안 끊겨요.</li>
 <li>${sp('reflect')}: 엔터 후 ${S.reflectDur}초 동안 유지돼요. 날아오는 주문과 접두어가 똑같으면 ${S.refExact}%, 등급 구성만 같으면 ${S.refSame}%로 되돌려 보내요. 메테오와 블랙홀까지 전부 반사돼요.</li></ul>
-<h3>공중 충돌</h3><ul><li>투사체끼리 부딪히면 센 쪽이 이겨요. 이긴 쪽은 진 쪽 위력의 ${S.clashMul}%만큼만 약해져서 계속 날아가요. 블랙홀은 닿는 투사체를 다 빨아들여요.</li></ul>`;
+<h3>공중 충돌</h3><ul><li>투사체끼리 부딪히면 센 쪽이 이겨요. 이긴 쪽은 진 쪽 위력의 ${S.clashMul}%만큼만 약해져서 계속 날아가요. 블랙홀은 닿는 투사체를 다 빨아들여요.</li></ul>
+<h3>서든데스</h3><ul><li>전투가 ${Math.floor(S.sdTime/60)}분${S.sdTime%60?' '+(S.sdTime%60)+'초':''}을 넘기면 서든데스가 시작돼요. 그때부터 ${sp('heal')}과 ${sp('shield')}가 ${S.sdHeal}%만 차요. 연습 모드에는 없어요.</li></ul>`;
 }
 function fillList(){
   const tiers=TIERS.map((t,i)=>`<p><b style="color:${t.ui}">${t.name}</b> <span style="color:#a89cc4">${t.range} · 보너스 +${S['d'+i]}</span><br><span style="color:${t.ui}">${t.words.join(' · ')}</span></p>`).join('');
