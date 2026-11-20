@@ -530,7 +530,7 @@ function castFrom(c,text,typos,cpm){
     case 'blackhole':launch({type:'blackhole',power:0,size:Math.min(22,(S.bhSize+bonus/3)*mul),time:speedTime(S.bhTime,cpm)});break;
     case 'heal':{const a=Math.min(S.hp-c.hp,(S.healBase+bonus*S.healMul)*mul);c.hp+=a;float(c.foot,HY,a<0.5?'체력 가득':(crit?'치명타! ':'')+'+'+Math.round(a),crit&&a>=0.5?'#ff9aa0':'#8af0a0',true);c.heal={t:0,crit};break;}
     case 'shield':{const a=(S.shBase+bonus*S.shMul)*mul,b=c.temp;c.temp=Math.min(S.shMax,c.temp+a);c.shCrit=crit;float(c.foot,HY,(crit?'치명타! ':'')+'보호막 +'+Math.round(c.temp-b),'#ffe08a',true);elemBurst('shield',c.foot,FLOOR-40,1.6);break;}
-    case 'reflect':c.reflect={until:now+S.reflectDur,words,dur:S.reflectDur};float(c.foot,HY,'리플렉트 ×'+words.length,'#d6b8ff');break;
+    case 'reflect':c.reflect={until:now+S.reflectDur,words,dur:S.reflectDur};float(c.foot,HY,words.length?'리플렉트 ×'+words.length:'리플렉트','#d6b8ff');break;
   }
 }
 function interrupt(c){
@@ -1098,7 +1098,7 @@ function loop(t){const dt=Math.min(0.05,(t-last)/1000||0);last=t;now+=dt;update(
   try{await Promise.all([document.fonts.load('10px Galmuri11','가'),document.fonts.load('10px Galmuri11B','가')]);}catch(e){}
   resize();requestAnimationFrame(t=>{last=t;loop(t);});
 })();
-window.__incant={get G(){return G},get S(){return S},jamo,parseSpell,invalidCount,startBattle,castFrom,applyHit,set diff(v){diffIdx=v}};
+window.__incant={get G(){return G},get S(){return S},step(dt){now+=dt;update(dt);},beginCast,randPrefixes,spellCost,get now(){return now},jamo,parseSpell,invalidCount,startBattle,castFrom,applyHit,set diff(v){diffIdx=v}};
 
 </script>
 </body>
