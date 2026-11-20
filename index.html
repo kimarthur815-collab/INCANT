@@ -283,14 +283,14 @@ function drawBook(b){
 }
 
 /* ---------- 수치 ---------- */
-const DEF={hp:100,critChance:25,critMult:2,d0:3,d1:5,d2:7,d3:9,d4:11,repeatMul:50,typoPen:10,typoMax:50,
+const DEF={hp:135,critChance:25,critMult:2,d0:3,d1:5,d2:7,d3:9,d4:11,repeatMul:50,typoPen:10,typoMax:50,
  refCPM:300,speedMin:50,speedMax:160,
  fireDmg:7,fireMul:1,fireTime:4.5, ltDmg:11,ltMul:0.9,ltTime:0.8, iceDmg:5,iceMul:0.7,iceTime:3.2,frostBase:2,
  windDmg:2,windMul:0.35,windTime:2.6,windGap:0.25,windCount:3, metDmg:4,metMul:0.6,metDelay:3.5,
  psnHit:2,psnDot:5,psnMul:0.8,psnDur:4,psnTime:3.2, silBase:3,silTime:3,silPower:5, bhSize:6,bhTime:5,
  healBase:4,healMul:1, shBase:10,shMul:1.5,shDecay:2,shMax:33,
  refExact:100,refSame:80,ref1:40,ref2:10,ref3:0,reflectDur:1.5,clashMul:70,bgmVol:60,sfxVol:80,voiceVol:100,hintDelay:3,manaMax:100,manaRegen:8,c_prefix:3,c_fire:15,c_lightning:20,c_ice:15,c_wind:15,c_meteor:15,c_poison:12,c_silence:15,c_blackhole:20,c_heal:20,c_shield:15,c_reflect:10,
- cpm0:120,typo0:10,int0:20,def0:15, cpm1:200,typo1:5,int1:70,def1:50, cpm2:300,typo2:3,int2:90,def2:80};
+ cpm0:120,typo0:10,int0:20,def0:15, cpm1:200,typo1:5,int1:70,def1:50, cpm2:380,typo2:3,int2:90,def2:80};
 const LABELS=[
  ['기본',[['hp','체력'],['critChance','치명타 확률 % (오타 0번일 때)'],['critMult','치명타 배율']]],
  ['접두어 보너스',[['d0','일반 +'],['d1','고급 +'],['d2','희귀 +'],['d3','영웅 +'],['d4','전설 +'],['repeatMul','같은 접두어 반복 시 남는 비율 %']]],
@@ -316,7 +316,7 @@ const LABELS=[
  ['난이도: 어려움',[['cpm2','AI 타수'],['typo2','AI 오타율 %'],['int2','끊기 시도 %'],['def2','방어 시도 %']]]
 ];
 let S=Object.assign({},DEF);
-const SET_VER=4;
+const SET_VER=5;
 try{if(+localStorage.getItem('incant-settings-v')===SET_VER){const s=JSON.parse(localStorage.getItem('incant-settings')||'{}');for(const k in DEF)if(typeof s[k]==='number'&&isFinite(s[k]))S[k]=s[k];}}catch(e){}
 function saveS(){try{localStorage.setItem('incant-settings',JSON.stringify(S));localStorage.setItem('incant-settings-v',SET_VER);}catch(e){}}
 
@@ -378,7 +378,7 @@ function sameWords(a,b){return a.length===b.length&&[...a].sort().join()===[...b
 const DIFF=[
  {name:'쉬움',auto:true,rec:true,minPre:0,maxPre:1,minTier:0,maxTier:1,copy:30,heal:20,spells:{fire:5,lightning:3,ice:2,wind:1}},
  {name:'보통',auto:true,rec:false,minPre:0,maxPre:3,minTier:0,maxTier:4,copy:50,heal:50,spells:{fire:30,lightning:15,ice:15,wind:12,meteor:10,poison:10,silence:8}},
- {name:'어려움',auto:false,rec:false,minPre:1,maxPre:4,minTier:2,maxTier:4,copy:85,heal:75,spells:{fire:25,lightning:12,ice:15,wind:12,meteor:14,poison:12,silence:10}}];
+ {name:'어려움',rest:[0.4,1.0],auto:false,rec:false,minPre:1,maxPre:4,minTier:2,maxTier:4,copy:85,heal:75,spells:{fire:25,lightning:12,ice:15,wind:12,meteor:14,poison:12,silence:10}}];
 let diffIdx=1;
 try{const d=parseInt(localStorage.getItem('incant-diff'));if(d>=0&&d<3)diffIdx=d;}catch(e){}
 
@@ -637,7 +637,7 @@ function aiUpdate(dt){
   if(ai.state==='fire'){
     const cost=spellCost(parseSpell(E.text));if(cost>E.mana)return;E.mana-=cost;
     const ks=jamo(E.text.trim()).length,el=Math.max(0.15,E.typingEndT-E.startT);
-    const tx=E.text;E.text='';beginCast(E,tx,E.typos,ks/(el/60));E.typos=0;ai.state='wait';ai.wait=rnd(0.8,1.8);
+    const tx=E.text;E.text='';beginCast(E,tx,E.typos,ks/(el/60));E.typos=0;ai.state='wait';const rs=DIFF[diffIdx].rest||[0.8,1.8];ai.wait=rnd(rs[0],rs[1]);
   }
 }
 
